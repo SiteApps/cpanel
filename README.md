@@ -1,4 +1,4 @@
-SiteApps plugin for cPanel.
+# SiteApps plugin for cPanel.
 
 First, request a host API key from SiteApps [https://siteapps.com/hosting/cpanel] (https://siteapps.com/hosting/cpanel).
 
