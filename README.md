@@ -1,6 +1,6 @@
 # SiteApps plugin for cPanel.
 
-First, request a host API key from SiteApps [https://siteapps.com/hosting/cpanel] (https://siteapps.com/hosting/cpanel).
+First, request a host API key from SiteApps [http://siteapps.com/hosting/become-a-partner] (http://siteapps.com/hosting/become-a-partner).
 
 Then run the following command as root on the server:
 
