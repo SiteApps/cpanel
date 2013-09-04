@@ -2112,6 +2112,9 @@ EOF
 /usr/local/cpanel/scripts/perlinstaller IO::Scalar
 /usr/local/cpanel/scripts/perlinstaller CGI
 /usr/local/cpanel/scripts/perlinstaller JSON::Syck
+/usr/local/cpanel/scripts/perlinstaller HTML::HeadParser
+/usr/local/cpanel/scripts/perlinstaller Net::SSL
+
 
 # register the cPanel plugin and install icons
 
