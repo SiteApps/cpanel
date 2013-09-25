@@ -14,7 +14,7 @@ cd /usr/local/cpanel || { echo "could not find the /usr/local/cpanel directory; 
 # Cpanel/Version.pm contains:  our ( $VERSION, $MAJORVERSION, $LTS ) = ( '4.0', '11.38', '11.38' );
 perl -e 'use Cpanel::Version; exit 1 if $Cpanel::Version::MAJORVERSION < 11.38;' ||  { echo "cPanel versions older than 11.38 are not supported by this plugin"; exit 1; } 
 
-cat <<'EOF' | uudecode -o - | tar -xzvf - || { echo "failed to extract archive"; exit 1; }
+cat <<'EOF' | uudecode -o - | tar --no-same-owner -xzvf - || { echo "failed to extract archive"; exit 1; }
 begin 664 siteapps_cpanel_plugin_2103_09_25.tar.gz
 M'XL(`*-,0U(``^R]"2"4W1<X3-F7$(F(:>QEF;%GS;Z4$)62&#.#89AI%DM(
 M*%%$I;VHM&C1+BJ)%)6T+]IL+2A92B64[]YG9AA+];Z_=_G_O^][KV:>YZ[G
