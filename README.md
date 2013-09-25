@@ -17,8 +17,7 @@ Click on the SiteApps link, and paste the host API keys you received from SiteAp
 
 ![API Keys](https://stpps.com/369/1.jpg)
 
-That's it. Now your users will see an SiteApps icon in the
-Software/Services box in cPanel.
+That's it. Now your users will see an new box called SiteApps in cPanel.
 
 
 ![SiteApps Icon](https://stpps.com/369/3.jpg)
