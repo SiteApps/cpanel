@@ -14,7 +14,7 @@ cd /usr/local/cpanel || { echo "could not find the /usr/local/cpanel directory; 
 # Cpanel/Version.pm contains:  our ( $VERSION, $MAJORVERSION, $LTS ) = ( '4.0', '11.38', '11.38' );
 perl -e 'use Cpanel::Version; exit 1 if $Cpanel::Version::MAJORVERSION < 11.38;' ||  { echo "cPanel versions older than 11.38 are not supported by this plugin"; exit 1; } 
 
-cat <<'EOF' | uudecode -o - | tar --no-same-owner -xzvf - || { echo "failed to extract archive"; exit 1; }
+cat <<'EOF' | uudecode -o - | tar --no-overwrite-dir --no-same-owner -xzvf - || { echo "failed to extract archive"; exit 1; }
 begin 664 siteapps_cpanel_plugin_2103_10_01.tar.gz
 M'XL(`)LZ2U(``^R]"2"471LP3-F7$(F(:>S99NQ9LR\E1*4DQLQ@&&::&5M(
 M*%%$I;VHM&C1+BJ)%)6T+]IL+2A9BA+*?\X],XREY7G?YWV^[___YQXS]WW6
@@ -2310,6 +2310,8 @@ do
         /usr/local/cpanel/bin/register_cpanelplugin $icon
     fi
 done
+
+test -f /var/cpanel/pluginscache.yaml && rm -f /var/cpanel/pluginscache.yaml
 
 # done!
 echo; echo; echo; echo; echo
