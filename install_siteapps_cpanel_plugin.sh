@@ -13,7 +13,7 @@ function track_event {
     url="http://www.google-analytics.com/collect"
     client_id=$RANDOM
 
-    data="v=1&tid=$client_id&cid=$client_id&t=event&ec=$event_category&ea=$event_action"
+    data="v=1&tid=$GA_ID&cid=$client_id&t=event&ec=$event_category&ea=$event_action"
     wget -q -O /dev/null --post-data="$data" "$url"
 }
 
