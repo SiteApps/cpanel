@@ -1,0 +1,24 @@
+#cpanel plugin file 1.0 (for use with /usr/local/cpanel/bin/register_cpanelplugin)
+version: 1.0
+name:siteapps_optimizationapps
+description:SiteApps Optimization Apps
+featuremanager:1
+url:siteapps.html?icon=3&option=optimization_apps
+acontent:
+onclick:
+if:
+itemorder:3
+itemdesc:Optimization Apps
+group:siteapps
+image:iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAACb0lEQVRIx2P8//8/Ay0BE4X63/98
+ue/x4tffH+FSwEKeuf/+/73z4ey1d0cuvzn48+83A1Fnqlnw6PO1sy+33/t04f2PFxARZkaWv///
+UtMHwpwyf/7//v3315ff7yC++f33B9XiQI5Xy0463F+pgI2ZQ5BdXJBD4j/D/4+/XlMzkn/9/bHg
+WsW7H8+CVEozdCeLcyk++HSZmhZsezDt0eerBqLOivz63KwC8Vpt4lwKuJI7I6n54Miz1TsezOJm
+Fcg1mMnDKkRQPWmRfOnN/l0P5zAwMHgrZqGb7sxIaRA9+3p7092J//7/0xCy1BNxJCcn/2f4//3P
+F6zqvv7+sPJm64+/XzlYeHwUs4l3FkoQvf72aMG1CnEuBXEuRRUBY3k+HVYmdojU6tsdb388ZWBg
+cJFNEGAXJ9OCo8/WfPr15tOvN7c/nDnybLUQh6Q0j5oUt9qr7w/vfDjLwMCgImBsIu5FUrQhLHjz
+/cmlN/sZGBgE2MU//nz1n+H/ux/P3/14fvnNQYgCdmYuL4VMFiZWMi049HTF738/NYWsQ1XLX3y7
+f+rFpoefrrz/+RKuwEYqVIxLntRMA7Xgxbd7F1/vleJWDVYtZWPmlOPVkuPV+vX3x52PZ6+/O3b7
+/RkeVgFb6XAyciU0oy2+Xvvky/VMvWkC7GKYij7//Pjn3y9BTlF8JuHIBywMDAyPPl+99/F8knY3
+VtMZGBh42fkZGBhSF+zBKjs7wQVfPvj3/++J5xsDVYpleTVpUmU++3Jbid+A+JxJsgUszGykJm3S
+LJDgUqJpqwIlJx9zXYlVkdXucPJ9wEBjMGrBqAVDwAIAR1D3+9xEgn0AAAAASUVORK5CYII=

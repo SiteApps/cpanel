@@ -1,0 +1,108 @@
+<link href="[% MagicRevision('/unprotected/cpanel/style_v2_optimized.css') %]" rel="stylesheet" type="text/css" />
+<link href="[% MagicRevision('/yui/yahoo-dom-event/yahoo-dom-event.js') %]" rel="stylesheet" type="text/css" />
+<link href="[% MagicRevision('/yui/tabview/assets/tabview-core.css') %]" rel="stylesheet" type="text/css" />
+<link href="[% MagicRevision('/yui/tabview/assets/skins/sam/tabview-skin.css') %]" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="[% MagicRevision('/yui/tabview/tabview-min.js') %]"></script>
+
+<style>
+
+body {
+   padding:  none;
+}
+
+.message {
+    border: 2px; 
+    width: 434px; 
+    float: left; 
+    padding: 20px;
+    -moz-border-radius: 5px 5px 5px 5px;
+}
+
+a, a:link, a:visited, a:active {
+    color: #0000FF;
+    text-decoration: none;
+}
+
+input.textbox {
+    -moz-border-radius: 2px 2px 2px 2px;
+    -moz-box-shadow: 0 10px 10px #E9E9E9 inset;
+    background-color: #FFFFFF;
+    border: 1px solid #BEBEBE;
+    color: #000000;
+    font-family: helvetica;
+    font-size: 12px;
+    height: 20px;
+    margin: 1px 0;
+    width: 470px;
+}
+
+</style>
+
+<div id="content_container" style="float: left; width: 870px; border: 1px solid #d0d0d0;">
+
+    <div style="float: left; display: inline; width: 420px; padding: 20px; background-color: #ffffff; margin-bottom: 20px;">
+
+        [% IF data.login_incorrect %]
+
+        <div class="message" style="background-color: #ff8080;"> 
+            <table callpadding="6" cellspacing="3"><tr><td alight="left" valign="top">
+                <img src="../addon_plugins/icon_info24x.png">
+            </td><td>
+                <b>[% data.error_message %]</b>
+            </td></tr></table>
+        </div>
+
+        [% ELSIF data.activated %]
+
+        <div class="message" style="background-color: #e8ff70;"> 
+            <table callpadding="6" cellspacing="3"><tr><td alight="left" valign="top">
+                <img src="../addon_plugins/icon_info24x.png">
+            </td><td>
+                <b>Congratulations!  Your setup is complete.</b>
+            </td></tr></table>
+        </div>
+
+        [% END %]
+
+        <form method="post">
+
+            <div style="padding-top: 10px; clear: both;">
+                <table cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td align="left" valign="top"><b>Public Key</b> <font color="red">*</font></td>
+                      <td align="right" valign="top"><!-- <a href="http://tldpluginmanager.com/reseller/create-account.aspx" target="_blank">Don't have an account?</a> XXX --></td>
+                    </tr><tr>
+                      <td colspan="2">
+                          <input type="text" name="public_key" class="textbox" value="[% data.public_key%]">
+                      </td>
+                </table>
+            </div>
+
+            <div style="padding-top: 10px;"><b>Private Key</b> <font color="red">*</font><br><input type="text" name="private_key" class="textbox"  value="[% data.private_key %]"></div>
+
+<!--
+            <div style="padding-top: 10px;">
+                <b>Billing URL</b> <font color="red">*</font><br><input type="text" name="billing_url" class="textbox"  value="[% data.billing_url %]"><br>
+                URL of the billing system
+            </div>
+  -->
+
+            <!-- <div style="padding-top: 20px; border-bottom: 1px solid #d0d0d0; padding-bottom: 20px;"><b>By clicking "update" you agree to the <a href="http://siteapps.com" target="_blank">terms & conditions</a>.</b></div>  -->
+
+            <div style="float: left; padding-top: 16px;">
+                <input type="submit" name="submit" value="Update">
+            </div>
+            <div style="float: right; padding-top: 12px;">
+                <!-- <img src="../addon_plugins/_official_plugin.png"> -->
+            </div>
+        </form>
+
+    </div>
+
+    <div style="float: right; display: inline; width: 310px; padding-left: 20px; padding-right: 10px; padding-top: 20px; background-color: #eeeeee; ">
+        <div style="float: center; width: 260px; border: 1px; border-color: #a0a0a0;">
+            <div><object type="text/html" data="https://api.siteapps.com/hosting/cpanel_box" width="295" height="620"></div>
+        </div>
+    </div>
+
+</div>
