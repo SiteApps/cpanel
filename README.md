@@ -30,4 +30,4 @@ That's it. Now your users will see an new box called SiteApps in cPanel.
 
 
 Also, there are some [useful
-scripts](http://support.siteapps.com/entries/31701308-Useful-SiteApps-cPanel-plugin-shell-scripts) to help you managing the plugin.
+scripts](http://support.siteapps.com/entries/31701308-Useful-SiteApps-cPanel-plugin-shell-scripts) to help you manage the plugin.
