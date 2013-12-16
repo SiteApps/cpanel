@@ -38,7 +38,7 @@ Used to inform the API Keys from the command line.
 ```sh
 update_credentials.sh <private_key> <public_key>
 ```
-    It accepts 2 optional argments:
+It accepts 2 optional argments:
 
    -  -f don't ask for keys confirmation:
 ```sh
@@ -65,16 +65,19 @@ in the installation time, and should be runned again if you install
 aditional cPanel themes.
 ##### uninstall_siteapps_plugin.sh: 
 Remove all the SiteApps plugin files, and unregister the icons. 
+
 ```sh
 uninstall_siteapps_plugin.sh 
 ```
 It accepts 2 optional argments:
 
    -  -f remove the credentials (api keys) files:
+
 ```sh
 uninstall_siteapps_plugin.sh -f
 ```    
    -  -ff remove the credentials (api keys) and the user's data files:
+
 ```sh
 uninstall_siteapps_plugin.sh -ff
 ```
