@@ -58,12 +58,12 @@ update_credentials.sh <private_key> <public_key> -ff
 
 ##### turn_off_mod_substitute.sh: 
 
-Turn off globally the "AutoTag" feature.
+Turns off globally the "AutoTag" feature.
 
 ##### turn_on_mod_substitute.sh: 
-Turn on globally the "AutoTag" feature.
+Turns on globally the "AutoTag" feature.
 #####  link_template_files.sh: 
-Link the SiteApps HTML files to all the cPanel templates. It is runned
+Links the SiteApps HTML files to all the cPanel templates. It is runned
 in the installation time, and should be runned again if you install
 aditional cPanel themes.
 ##### uninstall_siteapps_plugin.sh: 
