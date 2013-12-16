@@ -35,18 +35,21 @@ located in $CPANEL_PATH/3rdparty/siteapps/scripts :
 ##### update_credentials.sh: 
 
 Used to inform the API Keys from the command line.
+
 ```sh
 update_credentials.sh <private_key> <public_key>
 ```
 It accepts 2 optional argments:
 
    -  -f don't ask for keys confirmation:
+
 ```sh
 update_credentials.sh <private_key> <public_key> -f
 ```    
    -  -ff don't ask for keys confirmation and overwrite an existing keys
       file
 (credentials file):
+
 ```sh
 update_credentials.sh <private_key> <public_key> -ff
 ```
