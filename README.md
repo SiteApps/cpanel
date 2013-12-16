@@ -29,55 +29,5 @@ That's it. Now your users will see an new box called SiteApps in cPanel.
 
 
 
-Also, there are some useful scripts to help you managing the plugin
-located in $CPANEL_PATH/3rdparty/siteapps/scripts :
-
-##### update_credentials.sh: 
-
-Used to inform the API Keys from the command line.
-```sh
-update_credentials.sh <private_key> <public_key>
-```
-It accepts 2 optional argments:
-
-   -  -f don't ask for keys confirmation:
-```sh
-update_credentials.sh <private_key> <public_key> -f
-```    
-   -  -ff don't ask for keys confirmation and overwrite an existing keys
-      file
-(credentials file):
-```sh
-update_credentials.sh <private_key> <public_key> -ff
-```
-
-
-
-##### turn_off_mod_substitute.sh: 
-
-Turn off globally the "AutoTag" feature.
-
-##### turn_on_mod_substitute.sh: 
-Turn on globally the "AutoTag" feature.
-#####  link_template_files.sh: 
-Link the SiteApps HTML files to all the cPanel templates. It is runned
-in the installation time, and should be runned again if you install
-aditional cPanel themes.
-##### uninstall_siteapps_plugin.sh: 
-Remove all the SiteApps plugin files, and unregister the icons. 
-
-```sh
-uninstall_siteapps_plugin.sh 
-```
-It accepts 2 optional argments:
-
-   -  -f remove the credentials (api keys) files:
-
-```sh
-uninstall_siteapps_plugin.sh -f
-```    
-   -  -ff remove the credentials (api keys) and the user's data files:
-
-```sh
-uninstall_siteapps_plugin.sh -ff
-```
+Also, there are some [useful
+scripts](http://support.siteapps.com/entries/31701308-Useful-SiteApps-cPanel-plugin-shell-scripts) to help you managing the plugin.
