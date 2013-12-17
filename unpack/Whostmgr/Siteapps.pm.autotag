@@ -43,6 +43,14 @@ our $public_key;
 our $private_key;
 our $debug;
 
+open(my $version_file, '<', '/usr/local/cpanel/3rdparty/siteapps/version')  or die "Unable to open version file, $!";
+  our $plugin_version;
+  while (<$version_file>)
+  {
+      chomp;
+      $plugin_version = $_;
+  }
+
 sub get_query_string {
 
     my $json_data = shift() || '';
@@ -95,7 +103,7 @@ sub siteapps_api_call {
     }
 
     push @{ $ua->requests_redirectable }, 'POST';
-    $ua->agent("Siteapps cPanel plug-in/0.1"); # XXX VERSION ... and this isn't showing up in the as_string output... oh, but as_string is completely busted
+    $ua->agent("Siteapps cPanel plug-in/" . $plugin_version); # XXX VERSION ... and this isn't showing up in the as_string output... oh, but as_string is completely busted
 
     my $request;
     my $hostname = $test ? 'https://apibeta.siteapps.com/' : 'https://api.siteapps.com/';
@@ -115,7 +123,7 @@ sub siteapps_api_call {
         $request->header( Authorization => "Basic " . MIME::Base64::encode( $auth_info  ) ); # needed for testing against the betaapi
     }
 
-    $request->header( 'User-Agent' => "Siteapps cPanel plug-in/0.1" );
+    $request->header( 'User-Agent' => "Siteapps cPanel plug-in/" . $plugin_version);
 
     warn "json RPC request:\n", $request->as_string, "\n" if $debug; # as_string is busted to the point of being useless
 
