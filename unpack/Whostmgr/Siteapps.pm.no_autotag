@@ -1,0 +1,473 @@
+#!/usr/local/cpanel/3rdparty/bin/perl
+
+
+# Copyright Siteapps 2013
+# All rights Reserved.
+
+package Whostmgr::Siteapps;
+
+use strict;
+use warnings;
+
+use vars '$debug', '$test';
+$debug = 1;   # enable diagnostic output XXX
+$test = 0;    # use beta API instead XXX
+
+use lib '/usr/local/cpanel';
+
+use Whostmgr::SiteappsTools;
+use Scalar::Util qw(looks_like_number);
+use Whostmgr::SiteappsDB;
+
+use CGI                        ();
+use JSON::PP;
+use Digest::SHA;
+use MIME::Base64;
+use LWP;
+use Data::Dumper;
+
+
+# use Cpanel::Config ();
+
+#
+#
+#
+
+# this module either runs as part of the whostmgr .cgi "plug-in" or via privilege escalation/exec to system perl
+# from the cpanel side, so it never runs long, so we never cache for longer than one request.
+
+# HTTP 400 status code or non-null, non-100 value in top level 'status' field, or a top level 'msg' field in the JSON indicate error
+
+our $public_key;   
+our $private_key;
+our $debug;
+
+open(my $version_file, '<', '/usr/local/cpanel/3rdparty/siteapps/version')  or die "Unable to open version file, $!";
+our $plugin_version;                                                                                                                           
+while (<$version_file>)
+{
+    chomp;
+    $plugin_version = $_;
+}
+
+$plugin_version = $plugin_version . '-noautotag';
+
+sub get_query_string {
+
+    my $json_data = shift() || '';
+    my $user_key = shift() || '';
+
+    if( ! $public_key or ! $private_key ) {
+        my $auth = Whostmgr::SiteappsDB::read_auth_data( ) or die;
+        $public_key = $auth->{public_key} or die "no public_key configured";
+        $private_key = $auth->{private_key} or die "no private_key configure";
+    }
+
+    $json_data = encode_json($json_data) if ref $json_data;
+
+    my %params;
+    $params{'public-key'} = $public_key;
+    $params{'json-data'}  = $json_data if $json_data;
+
+    # $params{hash} = Digest::SHA::hmac_sha256_hex($json_data, unpack 'H*', $private_key );
+    # no, $private_key just happens to be hex characters and wasn't meant to be decoded into binary.  whee!
+    $params{hash} = Digest::SHA::hmac_sha256_hex( $json_data, $private_key . $user_key ); # XXX not sure this $private_key . $usre_key is correct
+
+    warn "RPC request JSON data: $json_data" if $json_data and $debug;
+
+    my $query_string = '';
+
+    for my $key ( keys %params ) {
+        $query_string .= '&' if $query_string;
+        $query_string .= $key . '=' . CGI::escape( $params{$key} );
+    }
+
+    return $query_string;
+
+}
+
+sub siteapps_api_call {
+
+    my $getpost = shift;  grep( $getpost eq $_, qw/GET POST/ ) or die "pass GET/POST";
+    my $module = shift;
+    my $method = shift;
+    my $user_key = shift;   # may be null
+    my $json_data = shift() || '';
+
+    die unless grep $module eq $_, 'Partner', 'PartnerSite';
+
+    my $query_string = get_query_string( $json_data, $user_key );
+
+    my $ua = LWP::UserAgent->new;
+    if( $test ) {
+        $ua = LWP::UserAgent->new( ssl_opts => { verify_hostname => 0, SSL_verify_mode => 0 } );
+    }
+
+    push @{ $ua->requests_redirectable }, 'POST';
+    $ua->agent("Siteapps cPanel plug-in/" . $plugin_version); # XXX VERSION ... and this isn't showing up in the as_string output... oh, but as_string is completely busted
+
+    my $request;
+    my $hostname = $test ? 'https://apibeta.siteapps.com/' : 'https://api.siteapps.com/';
+
+    if( $getpost eq 'GET' ) {
+        $query_string ="?$query_string" if $query_string;
+        $request = HTTP::Request->new( GET => "$hostname$module/$method$query_string" );
+    } else {
+        $request = HTTP::Request->new( POST => "$hostname$module/$method" );
+        $request->content( $query_string );
+        $request->header( 'Content-Type' => 'application/x-www-form-urlencoded' );
+    }
+
+    if( $test ) {
+        open my $fh, '<', '/var/cpanel/siteapps/beta_auth_info' or die $!;
+        read $fh, my $auth_info, -s $fh;
+        $request->header( Authorization => "Basic " . MIME::Base64::encode( $auth_info  ) ); # needed for testing against the betaapi
+    }
+
+    $request->header( 'User-Agent' => "Siteapps cPanel plug-in/" . $plugin_version);
+
+    warn "json RPC request:\n", $request->as_string, "\n" if $debug; # as_string is busted to the point of being useless
+
+    my $response = $ua->request($request);
+
+    warn "json RPC response:\n", $response->as_string, "\n" if $debug; # as_string is busted to the point of being useless
+
+    # $response->is_success or return { error => $response->status_line, response => $response->as_string, };
+
+    my %http_errors;
+    $response->is_success or %http_errors = (
+        error => $response->status_line, response => $response->as_string, 
+    );
+
+    my $result_datastructure = eval { decode_json( $response->content ) } or return {
+        error => "decoding JSON response: $@",
+        response => $response->as_string,
+        %http_errors,
+    };
+
+    $result_datastructure->{status} eq '100' or return {
+        error => "non-100 status code from siteapps.com: $result_datastructure->{status}: message from siteapps.com: $result_datastructure->{msg}",
+        msg => $result_datastructure->{msg},
+        json_as_returned => $result_datastructure,
+        %http_errors,
+    };
+
+    # eg:
+    # 
+    # $VAR1 = {
+    #           'msg' => undef,
+    #           'status' => 100,
+    #           'content' => [
+    #                          {
+    #                            'plan_name' => 'CPanel Sandbox Free',
+    #                            'plan_id' => 103
+    #                          },
+    #                          {
+    #                            'plan_name' => 'CPanel Sandbox Light',
+    #                            'plan_id' => 104
+    #                          },
+    #                          {
+    #                            'plan_name' => 'CPanel Sandbox Heavy',
+    #                            'plan_id' => 105
+    #                          } 
+    #                        ] 
+    #         };
+    
+    return $result_datastructure;
+    
+}
+
+#
+#
+#
+
+sub get_user_by_user_id {
+    Whostmgr::SiteappsTools::are_args_sanitized(@_) or die;
+    my $user_id = shift;
+    my $users = Whostmgr::SiteappsDB::read_users_data();
+    (my $user) = grep $_->{user_id} eq $user_id, @$users;
+    return $user;
+}
+
+sub get_user_by_username {
+    Whostmgr::SiteappsTools::are_args_sanitized(@_) or die;
+    my $username = shift;
+    my $users = Whostmgr::SiteappsDB::read_users_data();
+    (my $user) = grep $_->{username} eq $username, @$users;
+    return $user;
+}
+
+#
+#
+#
+
+sub getActivePlans {
+    my $res = siteapps_api_call('GET', 'Partner', 'getActivePlans', '', '');  # get/post, module, method, json_data, user_key
+    return $res if $res->{error};
+    $res->{success} = "getActivePlans ok";
+    return $res;
+}
+
+sub createUser {
+    my %args = @_;
+    my $name = delete $args{name};
+    Whostmgr::SiteappsTools::is_sanitized($name) or die;
+    my $email = delete $args{email};
+    Whostmgr::SiteappsTools::is_sanitized($email) or die;
+
+    return { error => "unexpected or missing arg in createUser: " . join ' ', keys %args } if keys %args;
+
+    my $users = Whostmgr::SiteappsDB::read_users_data();
+
+    ( my $user ) = grep $_->{username} eq $name, @$users;
+
+    $user and return { error => "There's already an account for user ``$name''", already_exists => 1, user_id => $user->{user_id}, };
+
+    my $res = siteapps_api_call( 'POST', 'Partner', 'createUser', '', { name => $name, email => $email, } );
+
+    # user_id and user_key come back
+
+    return $res if $res->{error};
+
+    Whostmgr::SiteappsDB::insert_user( {
+        username => $name,
+        user_key => $res->{content}->{user_key},
+        user_id  => $res->{content}->{user_id},
+    } );
+
+    return {
+        success   => "createUserfor user ``$name'' ok",
+        username => $name,
+        user_id   => $res->{content}->{user_id},
+        orig_json => $res, # XXX debug
+    };
+}
+
+sub createSite {
+
+    my %args = @_;
+    my $username = delete $args{username};
+    Whostmgr::SiteappsTools::is_sanitized($username) or die;
+    my $site_url = delete $args{site_url};
+    Whostmgr::SiteappsTools::is_sanitized($site_url) or die;
+    my $plan_id = delete $args{plan_id};
+    looks_like_number($plan_id) or die;
+
+    return { error => "unexpected or missing arg in createSite: " . join ' ', keys %args } if keys %args;
+
+    my $user = get_user_by_username( $username );
+    $user or return { error => "createSite couldn't find user for username ``$username''" }; 
+
+    my $domains_and_plans = Whostmgr::SiteappsDB::read_plan_data($username);
+
+    (my $record) = grep $_->{domain_name} eq $site_url, @$domains_and_plans;
+
+    if( $record ) {
+        return { error => "There's already an account for user ``$username'' and domain ``$site_url''" };
+    }
+
+    my $res = siteapps_api_call( 'POST', 'PartnerSite', 'createSite', $user->{user_key}, { user_id => $user->{user_id}, plan_id => $plan_id, site_url => $site_url, }, );
+
+    return $res if $res->{error};
+
+    resturn { error => "no site_id found in response", orig_json => $res } if ! $res->{content}->{site_id};
+
+    Whostmgr::SiteappsDB::insert_plan( $username, {
+        domain_name => $site_url,
+        plan_id => $plan_id,
+        site_id => $res->{content}->{site_id},
+        site_key => $res->{content}->{site_key}, # XXX I don't think this is ever actually used
+    } );
+
+    return {
+        site_id   => $res->{content}->{site_id},
+        success   => "createSite for user ``$username'' ok",
+        orig_json => $res, # XXX debug
+    };
+
+}
+
+sub changePlan {
+    my %args = @_;
+    my $username = delete $args{username} or die;
+    Whostmgr::SiteappsTools::is_sanitized($username) or die;
+
+    my $site_id = delete $args{site_id};
+    looks_like_number($site_id) or die;
+    my $plan_id = delete $args{plan_id};
+    looks_like_number($plan_id) or die;
+
+    if( keys %args ) {
+        return { error => "Unknown args to changePlan: " . join( ', ', keys %args ) };
+    }
+
+    my $user = get_user_by_username( $username );
+    $user or return { error => "changePlan couldn't find user for username ``$username''" }; 
+
+    my $record = Whostmgr::SiteappsDB::get_plan( $username, $site_id );
+
+    if( ! $record ) {
+        return { error => "Can't find record for user ``$username'' and site_id ``$site_id''" };
+    }
+
+    my $res = siteapps_api_call( 'POST', 'PartnerSite', 'change', $user->{user_key}, { user_id => $user->{user_id}, site_id => $site_id, plan_id => $plan_id, } );
+
+    return $res if $res->{error};
+
+    $record->{plan_id} = $plan_id;
+
+    my $success = Whostmgr::SiteappsDB::update_plan($username, $record);
+
+    return { error => "Updated at siteapps.com but not in our local database; should not happen!" } if ! $success;
+    return { 
+        success => "Updated plan for user ``$username'' and site_id ``$site_id'' to ``$plan_id''",
+        orig_json => $res, # XXX debug
+    };
+
+}
+
+sub suspendOrActivate {
+    my %args = @_;
+    my $username = delete $args{username} or die;
+    Whostmgr::SiteappsTools::is_sanitized($username) or die;
+
+    my $site_id = delete $args{site_id};
+    looks_like_number($site_id) or die;
+    my $action = delete $args{action};
+
+    if( keys %args ) {
+        return { error => "Unknown args to suspendOrActivate: " . join( ', ', keys %args ) };
+    }
+
+    my $user = get_user_by_username( $username );
+    $user or return { error => "suspendOrActivate couldn't find user for username ``$username''" }; 
+
+    my $record = Whostmgr::SiteappsDB::get_plan( $username, $site_id );
+
+    if( ! $record ) {
+        return { error => "Can't find record for user ``$username'' and site_id ``$site_id''" };
+    }
+
+    my $res = siteapps_api_call( 'POST', 'PartnerSite', 'suspendOrActivate', $user->{user_key}, { user_id => $user->{user_id}, site_id => $site_id, action => $action, } );
+
+    return $res if $res->{error};
+
+    # Whostmgr::SiteappsDB::update_plan($username, $record); # XXX we don't track activate/inactive status
+
+    return {
+        success => "Activated/deactived site_id ``$site_id'' for user ``$username''",
+        current_status => $res->{content}->{current_status},
+        orig_json => $res, # XXX debug
+     };
+
+}
+
+sub checkTagStatus {
+
+    my %args = @_;
+    my $site_id = delete $args{site_id};
+    looks_like_number($site_id) or die;
+
+    my $username = delete $args{username} or die;
+    Whostmgr::SiteappsTools::is_sanitized($username) or die;
+
+    if( keys %args ) {
+        return { error => "Unknown args to checkTagStatus: " . join( ', ', keys %args ) };
+    }
+
+    my $user = get_user_by_username( $username );
+    $user or return { error => "checkTagStatus couldn't find user for username ``$username''" };
+
+    my $record = Whostmgr::SiteappsDB::get_plan( $username, $site_id );
+
+    if( ! $record ) {
+        return { error => "Can't find record for user ``$username'' and site_id ``$site_id''" };
+    }
+
+    my $res = siteapps_api_call( 'POST', 'Partner', 'checkTagStatus', '', { user_id => $user->{user_id}, site_id => $site_id, } );
+
+    return $res if $res->{error};
+
+    my $res2 = {
+        success => "checkTagStatus for site_id ``$site_id'' for user ``$username'' ok",
+        tag_installed => $res->{content}->{tag_installed},
+        orig_json => $res, # XXX debug
+    };
+
+    $res2->{tag_content} = $res->{content}->{tag_content} if $res2->{tag_installed};
+
+    return $res2;
+
+}
+
+sub checkMultipleTagStatus {
+
+    my %args = @_;
+
+    my $username = delete $args{username} or die;
+    Whostmgr::SiteappsTools::is_sanitized($username) or die;
+
+
+    if( keys %args ) {
+        return { error => "Unknown args to checkMultipleTagStatus: " . join( ', ', keys %args ) };
+    }
+
+    my $site_ids = Whostmgr::SiteappsDB::list_site_ids( $username );
+
+    if( ! ref $site_ids or ! @$site_ids ) {
+        return { success => "No sites listed for that user", contents => [],  }; # null operation, not error
+    }
+
+    my $res = siteapps_api_call( 'POST', 'PartnerSite', 'checkMultipleTagStatus', '', { site_ids => $site_ids, } );
+
+    return $res if $res->{error};
+
+    my $res2 = {
+        success => "checkMultipleTagStatus for user ``$username'' ok",
+        contents  => $res->{content},
+        orig_json => $res, # XXX debug
+    };
+
+    return $res2;
+
+}
+  
+sub createLoginToken {
+    my %args = @_;
+    my $site_id = delete $args{site_id};
+    looks_like_number($site_id) or die;
+    my $ip = delete $args{ip};
+    my $user_agent = delete $args{user_agent};
+
+    my $username = delete $args{username} or die;
+    Whostmgr::SiteappsTools::is_sanitized($username) or die;
+
+    if( keys %args ) {
+        return { error => "Unknown args to createLoginToken: " . join( ', ', keys %args ) };
+    }
+
+    my $user = get_user_by_username( $username );
+    $user or return { error => "createLoginToken couldn't find user for username ``$username''" }; 
+
+    my $record = Whostmgr::SiteappsDB::get_plan( $username, $site_id );
+
+    if( ! $record ) {
+        return { error => "Can't find record for user ``$username'' and site_id ``$site_id''" };
+    }
+
+    my $res = siteapps_api_call( 'POST', 'PartnerSite', 'createLoginToken', $user->{user_key}, { user_id => $user->{user_id}, site_id => $site_id, ip => $ip, user_agent => $user_agent, } );
+
+    return $res if $res->{error};
+
+    my $res2 = {
+        success      => "createLoginToken for site_id ``$site_id'' for user ``$username'' ok",
+        url_to_login => $res->{content}->{url_to_login},
+        token        => $res->{content}->{token},
+        orig_json => $res, # XXX debug
+    };
+
+    return $res2;
+
+}
+
+1;

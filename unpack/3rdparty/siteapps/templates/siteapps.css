@@ -1,0 +1,322 @@
+.sa_on_off {
+   height: 26px;
+   line-height: 26px;
+   width: 80px;
+   margin-right: 15px;
+}
+
+.sa_on_off > span {
+   width: 80px;
+   height: 26px;
+   display: inline-block;
+   top: 8px;
+   position: relative;
+   background-image: url(siteapps_sa_on_off.png);
+   background-position: 0px 2px;
+   background-repeat: no-repeat;
+   cursor: pointer;
+}
+
+.sa_on_off > span > i {
+   width: 41px;
+   height: 26px;
+   position: absolute;
+   background-image: url(siteapps_sa_on_off.png);
+   background-position: -85px 0px;
+   background-repeat: no-repeat;
+   cursor: pointer;
+   top: 1px;
+}
+
+.sa_on_off > span > i.sa_on_off_item_on {
+   left: 0px;
+}
+
+.sa_on_off > span > i.sa_on_off_item_off {
+   left: 39px;
+}
+
+
+#saWrap {
+	width: 730px;
+	font-family: 'Open Sans', Arial;
+}
+
+#saLogo {
+	display: block;
+	width: 177px;
+	height: 34px;
+	background: url(siteapps_logo.png);
+	margin: 20px -2px 23px;
+	text-indent: -99999px;
+}
+
+.saSuperBanner {
+	width: 718px;
+	height: 228px;
+	border: 1px solid #e7e7e7;
+	display: block;
+}
+
+.saInfoBar {
+	margin: 33px 5px 3px;
+	font-size: 13px;
+	width: 720px;
+}
+
+.saInfoBarBottom {
+	margin: 10px 5px 33px;
+	font-size: 13px;
+	width: 720px;
+}
+
+.saInfoResult {
+	float: left;
+}
+
+.saInfoPagination {
+	float: right;
+	margin: 5px 5px;
+}
+
+.saPrev {
+	float: left;
+	line-height: 7px;
+	font-size: 14px;
+	font-weight: bold;
+	color: #ea601d;
+	margin-right: 10px;
+	cursor: pointer;
+}
+
+.saNumberActive {
+	font-weight: bold;
+}
+
+.saNext {
+	float: left;
+	line-height: 7px;
+	font-size: 14px;
+	font-weight: bold;
+	color: #ea601d;
+	margin-left: 10px;
+	cursor: pointer;
+}
+
+	.saNext:hover {
+		text-decoration: underline;
+	}
+
+	.saPrev:hover {
+		text-decoration: underline;
+	}
+
+.saNextArrow {
+	display: inline-block;
+	width: 5px;
+	float: right;
+	height: 9px;
+	background: url(siteapps_rightRow.png);
+	margin: 0 0 0 7px;
+}
+
+.saPrevArrow {
+	display: inline-block;
+	width: 5px;
+	float: left;
+	height: 9px;
+	background: url(siteapps_leftRow.png);
+
+	margin: 0 7px 0 0;
+}
+
+.saPaginationNumbers {
+	float: left;
+}
+
+	.saPaginationNumbers ul {
+		padding: 0;
+		margin: -6px 0 0;
+		list-style: none;
+		float: left;
+	}
+
+		.saPaginationNumbers ul li {
+			float: left;
+			padding: 0 10px;
+			border-right: 1px solid #CCC;
+			cursor: pointer;
+		}
+
+		.saPaginationNumbers ul li:last-child {
+			border-right: none;
+		}
+
+		.saPaginationNumbers ul li:hover {
+			text-decoration: underline;
+		}
+
+
+#saContent {
+	border: 1px solid #e2e2e2;
+	width: 720px;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+	background: #fafafa;
+	
+	
+}
+
+	#saContent ul {
+		padding: 0;
+		margin: 0;
+		list-style: none;
+	}
+
+	#saContent ul li {
+		padding: 0;
+		margin:0;
+		padding: 5px 5px 5px 15px;
+		height: 141px;
+		border-bottom: 1px solid #e2e2e2;
+	}
+
+	#saContent ul li:last-child {
+		border-bottom: none;
+	}
+
+.saLeftContent {
+	float: left;
+	width: 340px;
+
+
+}
+
+	.saLeftContent h3 {
+		font-size: 16px;
+		margin: 10px 0 0 10px;
+		color: #323232;
+		background:none;
+	}
+
+	.saLeftContent p {
+		font-size: 10px;
+		margin: 10px 10px 27px;
+		color: #919191;
+	}
+
+.saInstalled {
+	color: #529700;
+}
+
+.saNotInstalled {
+	color: #ed0707;
+}
+
+.saIconCheck {
+	display: inline-block;
+	width: 18px;
+	height: 16px;
+	background: url(siteapps_ico-checked.png);
+}
+
+.greenBtn, .greenBtn:hover {
+        cursor: pointer;
+	padding: 10px 0;
+	color: #FFF;
+	font-size: 13px;
+	text-decoration: none;
+	text-align: center;
+	border-radius: 5px;
+	background: #66b100;
+	background: -moz-linear-gradient(top, #66b100 0%, #79c80b 3%, #64af00 6%, #549600 97%, #417a00 100%);
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#66b100), color-stop(3%,#79c80b), color-stop(6%,#64af00), color-stop(97%,#549600), color-stop(100%,#417a00));
+	background: -webkit-linear-gradient(top, #66b100 0%,#79c80b 3%,#64af00 6%,#549600 97%,#417a00 100%);
+    width: 241px !important;
+    display: block !important;
+    box-sizing: border-box;
+	background: -o-linear-gradient(top, #66b100 0%,#79c80b 3%,#64af00 6%,#549600 97%,#417a00 100%);
+	background: -ms-linear-gradient(top, #66b100 0%,#79c80b 3%,#64af00 6%,#549600 97%,#417a00 100%);
+	background: linear-gradient(to bottom, #66b100 0%,#79c80b 3%,#64af00 6%,#549600 97%,#417a00 100%);
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#66b100', endColorstr='#417a00',GradientType=0 );
+	font-size: 14px;
+	font-weight: bold;
+	-webkit-box-shadow: 0px 2px 0px rgba(50, 50, 50, 0.2);
+	-moz-box-shadow:    0px 2px 0px rgba(50, 50, 50, 0.2);
+	box-shadow:         0px 2px 0px rgba(50, 50, 50, 0.2);
+	display: block;
+	width: 100%;
+}
+
+.greenBtn:hover {
+	text-decoration: underline;
+        cursor: pointer;
+}
+
+.orangeBtn {
+        cursor: pointer;
+	padding: 10px 0;
+	color: #FFF;
+	font-size: 13px;
+	text-decoration: none;
+	text-align: center;
+	border-radius: 5px;
+	background: #eb7b00;
+	background: -moz-linear-gradient(top,  #eb7b00 0%, #ee9b01 3%, #eb7a02 6%, #ea6600 97%, #e95100 100%);
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#eb7b00), color-stop(3%,#ee9b01), color-stop(6%,#eb7a02), color-stop(97%,#ea6600), color-stop(100%,#e95100));
+	background: -webkit-linear-gradient(top,  #eb7b00 0%,#ee9b01 3%,#eb7a02 6%,#ea6600 97%,#e95100 100%);
+	background: -o-linear-gradient(top,  #eb7b00 0%,#ee9b01 3%,#eb7a02 6%,#ea6600 97%,#e95100 100%);
+	background: -ms-linear-gradient(top,  #eb7b00 0%,#ee9b01 3%,#eb7a02 6%,#ea6600 97%,#e95100 100%);
+	background: linear-gradient(to bottom,  #eb7b00 0%,#ee9b01 3%,#eb7a02 6%,#ea6600 97%,#e95100 100%);
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#eb7b00', endColorstr='#e95100',GradientType=0 );
+	font-size: 14px;
+	font-weight: bold;
+	-webkit-box-shadow: 0px 2px 0px rgba(50, 50, 50, 0.2);
+	-moz-box-shadow: 0px 2px 0px rgba(50, 50, 50, 0.2);
+	box-shadow: 0px 2px 0px rgba(50, 50, 50, 0.2);
+	width: 100%;
+	display: block;
+	margin: 20px 0 0;
+    width: 241px !important;
+    display: block !important;
+
+}
+
+.saRightContent {
+	float: right;
+	width: 345px;
+	height: 130px;
+	display: block;
+	border: none;
+}
+
+.clearfix:after {
+	content: ".";
+	display: block;
+	clear: both;
+	visibility: hidden;
+	line-height: 0;
+	height: 0;
+}
+ 
+.clearfix {
+	display: inline-block;
+}
+
+#saTermsOfService {
+  padding: 10px;
+  background-color: #e2e2e2;
+  width: 700px;
+  color: #666;
+  font-size: 12px;
+}
+
+#saTermsOfService a, #saTermsOfService a:hover{
+  color: #666;
+  font-size: 12px;
+  text-decoration: underline;
+
+}
+
+

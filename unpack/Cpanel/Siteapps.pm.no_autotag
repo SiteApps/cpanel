@@ -1,0 +1,796 @@
+package Cpanel::Siteapps;
+
+# copyright Siteapps 2013
+
+use strict;
+use warnings; 
+
+use Data::Dumper;
+use IO::Handle;
+
+use Cpanel::AdminBin ();
+
+use Whostmgr::SiteappsTools;
+use Scalar::Util qw(looks_like_number);
+use Cpanel::DomainLookup;
+use Cpanel::Park;
+# use Cpanel::CustInfo ();  # built in to cPanel binary only; can't perl -c this code *sigh*; ack, can't load it either. how was this happening before? 
+
+use Data::Dumper;
+
+# sha1_hex for our own site_id_hash security token, hmac_sha256_hex for computing null_message_hash for listDomains to send to the template to iframe in siteapps.com
+use Digest::SHA::PurePerl 'sha1_hex', 'hmac_sha256_hex'; 
+
+
+=head2 system_perl( module, func, arguments... )
+
+Run C</usr/bin/perl> through a setuid wrapper and set it to execute the given function of the given method with the given arguments,
+as communicated through command line arguments and L<Data::Dumper> serialization of arguments.
+
+This invokes C</usr/local/cpanel/bin/siteapps_wrapper> which is built from C<src/plugin/siteapps/siteapps_wrapper.c>.
+That invokes C<src/plugin/siteapps/siteapps_wrapper.pl> which gets the module name to load, and loads and runs the
+correct function in that.
+
+=cut
+open(my $version_file, '<', '/usr/local/cpanel/3rdparty/siteapps/version')  or die "Unable to open version file, $!";
+our $plugin_version;
+while (<$version_file>)
+{
+    chomp;
+    $plugin_version = $_;
+}
+
+$plugin_version = $plugin_version . '-autotag';
+
+
+sub system_perl {
+    Whostmgr::SiteappsTools::are_args_sanitized(@_) or die;
+ 
+    my $module = shift;
+    my $func = shift;
+    my $args = [ @_ ];
+
+
+    my $wtr = IO::Handle->new; # arg 0
+    my $rdr = IO::Handle->new; # arg 1
+
+    my $child_read;
+
+    pipe( $child_read, $wtr );
+
+    select( ( select($wtr),        $| = 1 )[0] );    #aka $wtr->autoflush(1);
+    select( ( select($child_read), $| = 1 )[0] );    #aka $child_read->autoflush(1);
+
+    my $pid = open( $rdr, '-|' );
+    defined $pid or die "couldn't fork";
+
+    if( $pid ) {
+        # " If you open a pipe from minus, you can read from the filehandle you opened whatever your kid writes to his STDOUT." from "Safe Pipe Opens" in perldoc perlipc
+        # return $pid;
+        # continue on...
+        eof $rdr and die "target program, siteapps_wrapper, failed to start"; # this happens when the program we're trying to run dies before we get to this line
+    }
+    elsif ( defined $pid ) {
+        open( STDIN, '<&=' . fileno($child_read) );
+        exec( '/usr/local/cpanel/3rdparty/siteapps/bin/siteapps_wrapper', $module, $func, Dumper($args) );
+        # exec( '/usr/local/cpanel/src/plugin/siteapps/siteapps_wrapper.pl', $module, $func ); 
+        exit 1; # shouldn't happen
+    }
+
+    my $results = join '', readline $rdr;
+    # warn "results coming back: $results";
+    our $VAR1; # Data::Dumper::Dumper writes:  $VAR1 = ...stuff...; catch that
+    eval { eval $results; };
+    die $@ if $@;
+    return [ "error in " . __PACKAGE__ . ": $@" ] if $@;
+    # warn "VAR1 coming back: " . Dumper($VAR1);
+
+    return $VAR1;
+
+}
+
+# the unit test uses these
+
+
+#
+#
+#
+
+sub Siteapps_init { }
+
+sub api2 {
+    Whostmgr::SiteappsTools::are_args_sanitized(@_) or die;
+    my $func = shift;
+
+    return {
+
+        # "Partner"
+
+        getActivePlans => {
+            func   => 'api2_getActivePlans', 
+            engine => 'hasharray',
+        },
+        createUser => {
+            func   => 'api2_createUser',
+            engine => 'hasharray',
+        },
+        createAccount => {
+            func   => 'api2_createAccount',
+            engine => 'hasharray',
+        },
+        checkTagStatus => {
+            func   => 'api2_checkTagStatus',
+            engine => 'hasharray',
+        },
+        checkMultipleTagStatus => {
+            func   => 'api2_checkMultipleTagStatus',
+            engine => 'hasharray',
+        },
+
+        # "PartnerSite"
+
+        createSite => {
+            func   => 'api2_createSite',
+            engine => 'hasharray',
+        },
+        createLoginToken => {
+            func   => 'api2_createLoginToken',
+            engine => 'hasharray',
+        },
+        listDomains => {
+            func   => 'api2_listDomains',
+            engine => 'hasharray',
+        },
+        changePlan => {
+            func   => 'api2_changePlan',
+            engine => 'hasharray',
+        },
+        suspendOrActivate => {
+            func   => 'api2_suspendOrActivate',
+            engine => 'hasharray',
+        },
+    }->{$func};
+
+}
+
+#
+#
+#
+
+=head2 api2_getActivePlans
+
+Returns a list of plans available for users of this "partner" (available via the auth credentials configured in WHM).
+This is effectively the plans available to users via C<createAccount> and C<changePlan>.
+
+Calls Siteapp's C</Partner/getActivePlans>.
+
+Restricted to the C<root> user.
+
+Returns a structure similar to this:
+
+    { 
+        success => "Ok",   # do not look for this or any particular string; non-null content for human consumption only
+        content => [
+            { plan_id => 104, plan_name => 'CPanel Sandbox Light' },
+            { plan_id => 103, plan_name => 'CPanel Sandbox Free' },
+        ],
+    }
+
+Returns a hash with an C<error> key on failure or a hash with a C<success> key on success.
+
+=cut
+
+sub api2_getActivePlans {
+
+    my %args = @_;
+
+    if( keys %args ) {
+        return { error => "Unknown args to getActivePlans: " . join( ', ', keys %args ) };
+    }
+
+    return system_perl('Whostmgr::Siteapps', 'getActivePlans');
+
+}
+
+
+
+# "it also keeps track of which domains, on a per-user basis, are registered with Site Apps"
+# "many of the methods will be called by root, so they will need a user parameter as well as the domain name" -- but won't be called by root because
+# there's no way to authenticate against the API as root; you can authenticate as any user using root's password, though.
+
+#
+#
+#
+
+=head2 api2_createUser( )
+
+Parameters are not specifyable.
+
+=item C<name> is currently specified as the user's username in cPanel since they have no first/last name stored.
+=item C<email> is "the user email account in SiteApps".  Looks up the user's contact email address.
+
+Returns a hash with an C<error> key on failure or a hash with a C<success> key on success.
+If it returns C<success>, a C<user_id> key with a numeric value will also be returned.
+
+=cut
+
+sub api2_createUser {
+    my %args = @_;
+
+    my $name = $ENV{REMOTE_USER};
+    my $email = Cpanel::CustInfo::getemail(1);
+
+    if( keys %args ) {
+        return { error => "Unknown args to createUser: " . join( ', ', keys %args ) };
+    }              
+
+    my $ret = system_perl('Whostmgr::Siteapps', 'createUser', 
+        name => $name,
+        email => $email,
+    );
+
+    # $ret contains orig_json, success (hopefully), and user_id
+    $ret->{success} or return { error => "api2_createUser failed on call to siteapps createUser: $ret->{error}", orig_json => $ret };
+
+    return $ret;
+
+}
+
+
+
+
+=head2 api2_createSite( site_url => x, plan_id => x, )
+
+=item C<site_url> is the domain that SiteApps is being enabled for.  "This is the site profile in SiteApps."
+
+Returns a hash with an C<error> key on failure or a hash with a C<success> key on success.
+If it returns C<success>, a C<site_id> key with a numeric value will also be returned.
+
+Also returns C<plan_name>, the name of the plan added.
+This is needed by the cPanel UI.
+
+=cut
+
+sub api2_createSite {
+    my %args = @_;
+
+    my $site_url = delete $args{site_url};
+    Whostmgr::SiteappsTools::is_sanitized($site_url) or die;
+    my $plan_id = delete $args{plan_id};
+    looks_like_number($plan_id) or die;
+
+
+    my $name = $ENV{REMOTE_USER} or die;
+    Whostmgr::SiteappsTools::is_sanitized($name) or die;
+    # my $name = delete $args{name} || $ENV{REMOTE_USER};   # XXX testing shim; shouldn't be overridable
+
+    if( keys %args ) {
+        return { error => "Unknown args to createAccount: " . join( ', ', keys %args ) };
+    }              
+
+    # check to see if we have data for this user; if not, call createUser()
+
+    my $email = Cpanel::CustInfo::getemail(1);
+    $email or return { error => "You must have an email address set in your cPanel profile to use SiteApps.", error_code => 1296525, };
+    Whostmgr::SiteappsTools::is_sanitized($email) or die;
+
+    my $user_data = system_perl('Whostmgr::SiteappsDB', 'read_user_data', $name);
+    if( ! $user_data or ( ref($user_data) eq 'ARRAY' and ! @$user_data ) ) {
+
+        my $create_user_result = system_perl( 'Whostmgr::Siteapps', 'createUser', name => $name, email => $email, );
+        if( $create_user_result->{error} ) {
+            # return { error => "createSite couldn't call createUser: original error message: $create_user_result->{error}", orig_json => $create_user_result, };
+            return { error => "The SiteApps portal reports: $create_user_result->{msg}", orig_json => $create_user_result, };
+        }
+
+    }
+
+    my $ret = system_perl('Whostmgr::Siteapps', 'createSite', 
+        username => $name,
+        site_url => $site_url,
+        plan_id => $plan_id,
+    );
+
+    # $ret contains orig_json, success (hopefully), and site_id
+    $ret->{success} or return { error => "api2_createSite failed on call to siteapps createSite: $ret->{error}", orig_json => $ret };
+
+    # add some extra stuff (plan_name) to the result that's of interest to the cPanel API when it makes an AJAX call here
+
+    my $actives = system_perl('Whostmgr::Siteapps', 'getActivePlans');
+    $actives->{error} and return { error => "couldn't fetch the getActivePlans list of available plans: $actives->{error}", orig_json => $actives };
+    $actives = $actives->{content};
+    (my $plan) = grep $_->{plan_id} == $plan_id, @$actives or die "Failed to find plan_name in createAccount"; 
+    $ret->{plan_name} = $plan->{plan_name};
+
+    return $ret;
+
+}
+
+=head2 api2_createLoginToken( site_id => x,  ip => x, user_agent => x )
+
+C<site_id> comes from C<createAccount> originally or, after that, C<listDomains> will return a copy from local stores.
+C<ip> and C<user_agent> come from connection information from a hit from the user.
+
+Calls Siteapp's C</PartnerUser/createLoginToken>.
+Despite the name, it doesn't simply create a token that can be held and passed but insteads a URL and a token with which some
+confusing action is to be performed.
+
+If returns a C<success> or C<error> hash key, depending on success or failure.
+XXXX inconsistent; failure sometimes, error, other times.  returning error here because that's what the RPC client uses built from siteapps msg field.
+If it returns a C<success> key, it will also return a C<token> key/value and a C<url_to_login> key/value.
+Currently, the URL being returned 404's.
+
+The best I can guess from the docs, code is supposed to POST the token to that URL (with the param name C<token>)
+within 30 seconds to log the user in, but since we've specified a user agent and IP to obtain that token, I have
+to wonder if a POST from the cPanel server wouldn't be rejected because the IP doesn't match.
+
+=cut
+
+sub api2_createLoginToken {
+    my %args = @_;
+
+    my $site_id = delete $args{site_id};
+    looks_like_number($site_id) or die;
+    my $ip = $ENV{REMOTE_ADDR};
+    my $user_agent = $ENV{HTTP_USER_AGENT};
+
+
+    my $username = $ENV{REMOTE_USER};
+    Whostmgr::SiteappsTools::is_sanitized($username) or die;
+    # my $username = delete $args{name} || $ENV{REMOTE_USER};   # XXX testing shim; shouldn't be overridable
+
+    # do parameter validation instead
+    # my $auth_data = system_perl('Whostmgr::SiteappsDB', 'read_auth_data');
+    # my $expected_site_id_hash = sha1_hex( $auth_data->{site_key} . $site_id );
+    # if( $expected_site_id_hash ne $site_id_hash ) {
+    #     return {
+    #         error => "wrong site_id_hash passed to createLoginTokin",
+    #     }
+    # }
+
+    my $domains_and_plans = system_perl('Whostmgr::SiteappsDB', 'read_plan_data', $username);
+    if( ! grep $_->{site_id} == $site_id, @$domains_and_plans ) {
+         return {
+             error => "no such site_id for this user in createLoginToken",
+         }
+    }
+
+    if( keys %args ) {
+        return { error => "Unknown args to createLoginToken: " . join( ', ', keys %args ) };
+    }              
+
+    return system_perl('Whostmgr::Siteapps', 'createLoginToken', 
+        username => $username,
+        site_id => $site_id,
+        ip => $ip,
+        user_agent => $user_agent,
+    );
+
+}
+
+
+=head2 api2_listDomains( page => x, num_per_page => x, ... username => x )
+
+This provides the data for the cPanel side display, at least initially.  AJAX calls back can call other API methods.
+
+C<page> defaults to 0.
+
+C<num_per_page> defaults to 25.
+
+=head3 Return Values
+
+=item C<error>:  Key present with a true value if the call was unsuccessfully, such as if the public key and private key aren't configured in WHM.
+
+=item C<success>:  Key present with a true value if the call was successful.
+
+=item C<num_pages> 
+
+=item C<current_page_num> 
+
+=item C<next_page_num>: Set to the next page number, if there is a next page.
+
+=item C<prev_page_num>: Set to the previous page number, if there is a previous page. 
+
+=item C<num_results>: How many results are on this page.
+
+=item C<domains>:  Array of hashes, one per domain result on the current page, each with some set of the following keys.
+
+=item C<free_plan_id>: C<plan_id> from C<getActivePlans> to use as the one available to be added if there is no billing system.
+
+=head3 C<domains> entries keys:
+
+=item C<name>:  The domain name.
+
+=item C<is_a_siteapps_domain>
+
+=item C<plan_id> if the C<is_a_siteapps_domain> key is present.
+
+=item C<plan_name> if the C<is_a_siteapps_domain> key is present.
+
+=item C<site_id> if the C<is_a_siteapps_domain> key is present.
+
+=item C<tag_installed> if the C<is_a_siteapps_domain> key is present.
+
+=item C<tag_content> if the C<is_a_siteapps_domain> key is present.
+
+=item C<is_a_base_domain>: True if its in cPanel's list of base domains.
+
+=item C<is_a_parked_domain>: True if its in cPanel's list of parked domains.
+
+=item C<is_an_addon_domain>: True if its in cPanel's list of addon domains.
+
+=head3 Goop
+
+7.3.3 says: listDomains: This should return a paginated data blob to
+be used in templating the screen for the enduser, displaying which of
+their domains have Site Apps tags, what the tags are and the tag
+status (activated/deactivated).
+
+> 1. It has to call SiteApp's checkTagStatus() API method for each
+> domain to find the status of that domain (were you commenting on this
+> earlier? I may have failed to make a note when I was first trying to
+> get a handle on things)
+                               
+Yes.  Although I told Leandro and Philip about this and they've retooled
+the API so we can make multiple domain requests for checkTagStatus as well.
+
+> 2. It has to call the as of yet unspecified "get tag" SiteApp API
+> method for each domain to find the JS tag for each domain.
+                                                                   
+For reasons yet undisclosed, they decided to return the tag (JS code)      
+with checkTagStatus().                                                     
+
+> 3. It needs to use the cPanel API2 method (probably)      
+> AddonDomain::listaddondomains to get a list of domains that may or may       
+> not have SiteApps enabled.
+                                                                              
+I don't know if that will catch all the domains.  From what I recall, there are three classes of domains in cPanel                                                                                                                                 
+Parked Domains                         
+Addon Domains                               
+Primary domain(s)                          
+                                                                                                                  
+As long as all of them are covered, then it's good. 
+
+=cut
+
+sub api2_listDomains {
+
+    my %args = @_;
+    my $user_agent = $ENV{HTTP_USER_AGENT};
+    my $page = delete $args{page} || 1;  $page -= 1; # normalize to 0
+    looks_like_number($page) or die;
+    my $num_per_page = delete $args{num_per_page} || 25;
+    looks_like_number($num_per_page) or die;
+
+    if( keys %args ) {
+        return { error => "Unknown args to listDomains: " . join( ', ', keys %args ) };
+    }
+
+    my $username = $ENV{REMOTE_USER} or die;
+    Whostmgr::SiteappsTools::is_sanitized($username) or die;
+    # my $username = delete $args{name} || $ENV{REMOTE_USER};   # XXX testing shim; shouldn't be overridable
+
+    my $auth_data = system_perl('Whostmgr::SiteappsDB', 'read_auth_data'); # used a few places in here
+    $auth_data && $auth_data->{public_key} && $auth_data->{private_key} or return { error => "public_key and/or private_key missing" };
+
+    # XXX don't know if we need this
+    # my $user_data = system_perl('Whostmgr::SiteappsDB', 'read_user_data', $username);
+    # $user_data or return { error => "no user data for this user found" };
+    # $user_data->{user_key} or return { error => "no user key found in this user's data" };
+
+    my $actives = system_perl('Whostmgr::Siteapps', 'getActivePlans');
+    $actives->{error} and return { error => "listDomains couldn't fetch the getActivePlans list of available plans", orig_json => $actives };
+    $actives = $actives->{content};
+    my %actives = map { ( $_->{plan_id} => $_->{plan_name} ) } @$actives;
+    # [
+    #        { plan_id => 104, plan_name => 'CPanel Sandbox Light' },
+    #        { plan_id => 103, plan_name => 'CPanel Sandbox Free' },
+    #    ],
+    # now those also have a 'monthly_price' field
+    (my $free_plan) = grep $_->{monthly_price} == 0, @$actives;
+    $free_plan or return { error => "couldn't identify any of the available plans as being the free plan" };
+
+    my %domains;
+
+    my $domains_and_plans = system_perl('Whostmgr::SiteappsDB', 'read_plan_data', $username);
+    for my $rec ( @$domains_and_plans ) {
+        my $domain = $rec->{domain_name};
+        $domains{ $domain }->{is_a_siteapps_domain} = 1;
+        $domains{ $domain }->{plan_id} = $rec->{plan_id};
+        $domains{ $domain }->{plan_name} = $actives{ $rec->{plan_id} };
+        $domains{ $domain }->{name} = $domain;
+        $domains{ $domain }->{site_id} = $rec->{site_id};
+        # warn "site_key and site_id in listDomains: $auth_data->{site_key} $rec->{site_id}";
+        # $domains{ $domain }->{site_id_hash} =  sha1_hex( $auth_data->{site_key} . $rec->{site_id} ); # doing parameter validation instead
+    }
+
+    #
+    # fetch all addon domains, subdomains, and parked domains in addition to the base domain
+    #
+
+    my $basedomains = Cpanel::DomainLookup::api2_getbasedomains();
+    # the code behind that method does this, at the end:
+    # my @RSD = map { { 'domain' => $_ } } sort keys %UNIQ_DOMAINS;
+    # return \@RSD;
+    for my $domain ( map $_->{domain}, @$basedomains ) {
+        $domains{$domain}->{is_a_base_domain} = 1;
+        $domains{ $domain }->{name} = $domain;
+    }
+
+    my $subdomains = Cpanel::SubDomain::api2_listsubdomains(); 
+    # warn Dumper($subdomains);
+    # returns eg:
+    #      [ 
+    #        { 
+    #          'status' => 'not redirected',
+    #          'basedir' => 'public_html/test.scottg.plainblack.com',
+    #          'domain' => 'test.scottg.plainblack.com',
+    #          'dir' => '/home/scottg/public_html/test.scottg.plainblack.com',
+    #          'domainkey' => 'test_scottg.plainblack.com',
+    #          'reldir' => 'home:public_html/test.scottg.plainblack.com',
+    #          'subdomain' => 'test',
+    #          'rootdomain' => 'scottg.plainblack.com'
+    #        }
+    #      ]
+    for my $rec (@$subdomains) {
+        my $domain = $rec->{domain};
+        $domains{ $domain }->{name} = $domain;
+        $domains{ $domain }->{is_a_subdomain} = 1;
+    }
+
+    my @addondomains = Cpanel::Park::api2_listaddondomains(); # what does this look like?  http://docs.cpanel.net/twiki/bin/view/AllDocumentation/XmlApicPanel has a clue.  oh.  the code tells:
+    #         push(
+    #             @RSD,
+    #             {
+    #                 'domain'        => $parked,
+    #                 'dir'           => $dir,
+    #                 'reldir'        => $reldir,
+    #                 'basedir'       => $basedir,
+    #                 'status'        => $status,
+    #                 'domainkey'     => $FN{$subdomain},
+    #                 'subdomain'     => $PN{$subdomain},
+    #                 'rootdomain'    => $rootdomain,
+    #                 'fullsubdomain' => $subdomain
+    #             }
+    #         );
+    # @RSD = sort { $a->{'domain'} cmp $b->{'domain'} } @RSD;
+    # return @RSD;
+    # this logic is untested because you can't easily add parked or add-on domains without slave DNS servers hooked up, which our dev cPanel doesn't have
+    for my $record (@addondomains) {
+        my $domain = $record->{domain}; # XXX or do we want 'fullsubdomain' instead?
+        $domains{ $domain }->{is_an_addon_domain} = 1;
+        $domains{ $domain }->{name} = $domain;
+    }
+
+    my @parkeddomains = Cpanel::Park::api2_listparkeddomains(); # what does this look like?  looking at the code to guess (can't test for reasons as above):
+    # similar to above
+    #    push @RSD,
+    #      {
+    #        'domain'  => $parked,  
+    #        'dir'     => $dir,
+    #        'basedir' => $basedir,
+    #        'reldir'  => $reldir,
+    #        'status'  => $status
+    #      };
+    for my $record (@parkeddomains) {
+        my $domain = $record->{domain};
+        $domains{ $domain }->{is_a_parked_domain} = 1;
+        $domains{ $domain }->{name} = $domain;
+    }
+
+    # sort the domain names, and pick out which ones we're showing on this page
+
+    my @sorted_domain_names = sort { $a cmp $b } keys %domains;
+
+    my $first_record_num = $num_per_page * $page;
+    my $last_record_num = $first_record_num + $num_per_page - 1;  # eg, number 0 through 24
+
+    my @paginated_domain_names;
+    for my $i ( $first_record_num .. $last_record_num ) {
+        # avoid the bounds checking / errors of using a slice; this can silently wind up empty, which is fine
+        push @paginated_domain_names, $sorted_domain_names[ $i ] if $sorted_domain_names[ $i ];
+    }
+
+    # XXX experimental:  checkMultipleTagStatus
+
+    # my $multiple_tag_status = system_perl( 'Whostmgr::Siteapps', 'checkMultipleTagStatus', username => $username, );
+    # die ref($multiple_tag_status) . ' ' . Data::Dumper::Dumper($multiple_tag_status); # XXXX somehow, an array is coming back here, as if we were calling Whostmgr::SiteappsDB::list_site_ids... wth?  then getMultipleTagStatus endpoint stopped working while I was investigating this.
+    # $multiple_tag_status->{error} and return { error => 'checkMultipleTagStatus call failed', orig_json => $multiple_tag_status, };
+
+    # put off making RPC calls to fetch additional data for domains until we've figured out which ones are being displayed on this
+    # page of data
+
+    for my $domain_name ( @paginated_domain_names ) {
+        my $domain = $domains{ $domain_name };
+
+        next unless $domain->{ is_a_siteapps_domain };
+
+        # for checkMultipleTagStatus
+
+        # (my $tag_status) = grep $_->{site_id} == $domain->{site_id}, @{ $multiple_tag_status->{contents} };
+        # $tag_status or return { error => "couldn't find a record for site_id ``$domain->{site_id}'' in results of checkMultipleTagStatus", orig_json => $multiple_tag_status, };
+        # $domain->{tag_installed} = $tag_status->{tag_installed};
+        # $domain->{tag_content} = $tag_status->{tag_content};
+
+        my $res = system_perl( 'Whostmgr::Siteapps', 'checkTagStatus', username => $username, site_id => $domain->{ site_id }, );
+        # handle not-success
+        $domain->{ error } = $res->{ error } if $res->{ error };
+        $domain->{ tag_installed } = $res->{ tag_installed };
+        $domain->{ tag_content } = $res->{ tag_content };
+
+        my $iframe_query_string = system_perl( 'Whostmgr::Siteapps', 'get_query_string', { site_id => $domain->{ site_id }, }, );
+        $domain->{ iframe_query_string } = $iframe_query_string;
+    }
+
+    my $num_pages = int( @sorted_domain_names / $num_per_page ) + ( ( @sorted_domain_names % $num_per_page ) ? 1 : 0 );
+
+    my @result_domains = @domains{ @paginated_domain_names };
+
+    $page = $page + 1; # normalize back to starting at page 1
+
+    my $ret = {
+        success => "Ok",
+        domains => \@result_domains,
+        num_pages => $num_pages,
+        plugin_version => $plugin_version,
+        num_results => scalar @sorted_domain_names,
+        current_page_num => $page,
+        free_plan_id => $free_plan->{plan_id},
+        public_key => $auth_data->{public_key},
+        # null_message_hash => hmac_sha256_hex( '', $auth_data->{private_key} . $user_data->{user_key} ),
+        null_message_hash => hmac_sha256_hex( '', $auth_data->{private_key} ),
+        # lord have mercy on my soul
+        ip         => $ENV{REMOTE_ADDR},
+        user_agent => $ENV{HTTP_USER_AGENT},
+
+    };
+
+    $ret->{prev_page_num} = $page - 1 if $page > 1;
+    $ret->{next_page_num} = $page + 1 if $page < $num_pages;
+
+    $ret->{billing_url} = $auth_data->{billing_url};
+    ( $ret->{billing_url_encoded} = $ret->{billing_url} ) =~ s{([^a-zA-Z0-9_])}{'%'.sprintf('%02x', ord($1))}ge;
+
+    return $ret;
+}
+
+
+
+
+
+=head2 api2_changePlan
+
+Takes C<site_id> and C<plan_id>.
+Calls Siteapp's C</PartnerSite/change>.
+The site must already exist and be owned by the specified user.
+Updates the local database.
+This method does not check that the new C<plan_id> is one of the ones returned by C<getActivePlans>; if
+given an invalid C<plan_id>, it will come back with whatever error C<api.siteapps.com> comes back with.
+Returns a hash with an C<error> key on failure or a hash with a C<success> key on success.
+
+=cut
+
+sub api2_changePlan {
+
+    my %args = @_;
+    my $site_id = delete $args{site_id};
+    looks_like_number($site_id) or die;
+    my $plan_id = delete $args{plan_id};
+    looks_like_number($plan_id) or die;
+
+    my $username = $ENV{REMOTE_USER} or die;
+    Whostmgr::SiteappsTools::is_sanitized($username) or die;
+    # my $username = delete $args{name} || $ENV{REMOTE_USER};   # XXX testing shim; shouldn't be overridable
+
+    if( keys %args ) {
+        return { error => "Unknown args to changePlan: " . join( ', ', keys %args ) };
+    }
+
+    return system_perl( 'Whostmgr::Siteapps', 'changePlan', username => $username, site_id => $site_id, plan_id => $plan_id,  );
+
+}
+
+=head2 api2_suspendOrActivate
+
+Takes C<site_id> and C<action>.
+An C<action> of C<0> deactives a site/domain.
+An C<action> of C<1> actives a site/domain.
+Calls Siteapp's C</PartnerSite/suspendOrActivate>.
+The site must already exist and be owned by the specified user.
+Updates the local database.
+Returns a hash with an C<error> key on failure or a hash with a C<success> key on success.
+On C<success>, returns a key of C<current_status> with a value of C<0> or C<1>.
+
+=cut
+
+sub api2_suspendOrActivate {
+
+    my %args = @_;
+
+    my $site_id = delete $args{site_id};
+    looks_like_number($site_id) or die;
+    my $action = delete $args{action};
+
+    my $username = $ENV{REMOTE_USER} or die;
+    Whostmgr::SiteappsTools::is_sanitized($username) or die;
+    # my $username = delete $args{name} || $ENV{REMOTE_USER};   # XXX testing shim; shouldn't be overridable
+
+    if( keys %args ) {
+        return { error => "Unknown args to suspendOrActivate: " . join( ', ', keys %args ) };
+    }
+
+    return system_perl( 'Whostmgr::Siteapps', 'suspendOrActivate', username => $username, site_id => $site_id, action => $action,  );
+
+
+}
+
+=head2 api2_checkTagStatus
+
+Takes C<site_id>.
+
+Despite its name, it also returns the "tag" (HTML fragment containing JavaScript) in addition to returning information
+about whether it is enabled, if applicable.
+There is no separate "getTagStatus" method.
+Calls Siteapp's C</PartnerSite/checkTagStatus>.
+The site must already exist and be owned by the specified user.
+Returns a hash with an C<error> key on failure or a hash with a C<success> key on success.
+If C<success> is set, 
+it returns a key of C<tag_installed> with a value of either C<0> or C<1>, 
+and a tag of C<tag_content> with a value containing the HTML fragment. 
+
+=cut
+
+sub api2_checkTagStatus {
+
+    my %args = @_;
+    my $site_id = delete $args{site_id};
+    looks_like_number($site_id) or die;
+
+    my $username = $ENV{REMOTE_USER} or die;
+    Whostmgr::SiteappsTools::is_sanitized($username) or die;
+    # my $username = delete $args{name} || $ENV{REMOTE_USER};   # XXX testing shim; shouldn't be overridable
+
+    if( keys %args ) {
+        return { error => "Unknown args to checkTagStatus: " . join( ', ', keys %args ) };
+    }
+
+    return system_perl( 'Whostmgr::Siteapps', 'checkTagStatus', username => $username, site_id => $site_id, );
+
+}
+
+=head2 api2_checkMultipleTagStatus
+
+Calls Siteapp's C</PartnerSite/checkMultipleTagStatus>.
+Returns tag status for all SiteApps activated domains (C<site_id>s) owned by a username.
+Returns a hash with an C<error> key on failure or a hash with a C<success> key on success.
+
+If C<success> is set, 
+it returns a C<contents> key which is an array of hashes.
+
+Each hash has these keys:  C<tag_installed>, C<tag_content>, C<site_id>.
+
+=cut
+
+sub api2_checkMultipleTagStatus {
+
+    my %args = @_;
+
+    my $username = $ENV{REMOTE_USER} or die;
+    Whostmgr::SiteappsTools::is_sanitized($username) or die;
+    # my $username = delete $args{name} || $ENV{REMOTE_USER};   # XXX testing shim; shouldn't be overridable
+
+    if( keys %args ) {
+        return { error => "Unknown args to checkMultipleTagStatus: " . join( ', ', keys %args ) };
+    }
+
+    return system_perl( 'Whostmgr::Siteapps', 'checkMultipleTagStatus', username => $username, );
+
+}
+
+
+#
+#
+#
+
+1;
+
