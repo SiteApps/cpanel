@@ -70,7 +70,10 @@ function enable_substitute {
         error "$substitute_error"
     fi
 }
-
+base_version=$(echo "$VERSION" | cut -d- -f1)
+new_version=$(echo "$base_version-autotag")
+change_version $new_version
 echo -e ""$BLUE"Enabling mod substitute on Apache..."
 enable_substitute
 echo -e ""$GREEN"mod_substitute is now ON.$COLOR_END"
+

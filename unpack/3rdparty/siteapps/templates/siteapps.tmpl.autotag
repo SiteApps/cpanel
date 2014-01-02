@@ -115,7 +115,9 @@ jQuery(function() {
 </script>
 
       <script>
-         jQuery(function() {
+        final_query_string=window.location.search.replace('?', '&');
+        final_query_string += '&plugin_version=[% page.plugin_version %]';
+        jQuery(function() {
             jQuery(".sa_on_off").on('click', function() {
                var event = jQuery.Event("run");
                event.turn_on = function(obj) {
@@ -157,7 +159,7 @@ jQuery(function() {
             <h1 id="saLogo">SiteApps</h1>
             <iframe id="iframe1" class="saSuperBanner" src=""></iframe>
             <script>
-              document.getElementById("iframe1").src = "https://api.siteapps.com/hosting/cpanel_box?public-key=[% page.public_key %]&hash=[% page.null_message_hash %]" + window.location.search.replace('?', '&')
+              document.getElementById("iframe1").src = "https://api.siteapps.com/hosting/cpanel_box?public-key=[% page.public_key %]&hash=[% page.null_message_hash %]" + final_query_string;
             </script>
             <div class="saInfoBar clearfix">
                 <div class="saInfoResult"><strong>[% page.num_results %]</strong> results</div>
@@ -404,16 +406,14 @@ function ask_the_user_for_his_or_her_email_address( button, domain_name ) {
                                 [% END %]
                         </div>
                         <div float="right">
-                            [% IF domain.site_id %]
                                 <iframe id="iframe_[% domain.name %]" class="saRightContent" src=""></iframe>
+                            [% IF domain.site_id %]
                                 <script>
-                                  document.getElementById("iframe_[% domain.name %]").src = "https://api.siteapps.com/hosting/cpanel_box_domain?[% domain.iframe_query_string %]"+window.location.search.replace('?', '&')
+                                  document.getElementById("iframe_[% domain.name %]").src = "https://api.siteapps.com/hosting/cpanel_box_domain?[% domain.iframe_query_string %]"+final_query_string+"&site_id=[% domain.site_id %]";
                                 </script>
                             [% ELSE %]
-                                <iframe id="iframe_[% domain.name %]" class="saRightContent" src=""></iframe>
-
                               <script>
-                                document.getElementById("iframe_[% domain.name %]").src = "https://api.siteapps.com/hosting/cpanel_box_domain?public-key=[% page.public_key %]&hash=[% page.null_message_hash %]"+window.location.search.replace('?', '&')
+                                document.getElementById("iframe_[% domain.name %]").src = "https://api.siteapps.com/hosting/cpanel_box_domain?public-key=[% page.public_key %]&hash=[% page.null_message_hash %]" + final_query_string;
                               </script>
                             [% END %]
                         </div>

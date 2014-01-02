@@ -54,6 +54,10 @@ function disable_substitute {
         error "$substitute_error"
     fi
 }
+base_version=$(echo "$VERSION" | cut -d- -f1)
+new_version=$(echo "$base_version-noautotag")
+change_version $new_version
+
 echo -e ""$BLUE"Disabling mod substitute on Apache..."
 disable_substitute
 echo -e ""$GREEN"mod_substitute is now OFF$COLOR_END"

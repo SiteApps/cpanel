@@ -33,6 +33,12 @@ function is_apache_running {
     fi
 }
 
+function change_version {
+    echo $1 > $SITEAPPS_PATH/version
+    export VERSION=$1
+}
+
+
 function ensure_apache_is_running {
     is_running=$(is_apache_running)
     max_retries=10

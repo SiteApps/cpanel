@@ -15,8 +15,9 @@ SITEAPPS_CREDENTIALS="$SITEAPPS_DATADIR/credentials"
 SITEAPPS_PATH="$CPANEL_PATH/3rdparty/siteapps"
 SITEAPPS_HTML_TEMPLATES="$SITEAPPS_PATH/templates"
 SITEAPPS_APPCONF_FILE="$SITEAPPS_PATH/app/siteapps.conf"
-FILES="Cpanel/Siteapps.pm* Whostmgr/SiteappsDB.pm* Whostmgr/Siteapps.pm* Whostmgr/SiteappsTAG.pm* Whostmgr/SiteappsTools.pm whostmgr/docroot/addon_plugins/icon_info24x.png whostmgr/docroot/addon_plugins/siteapps_25x25.gif whostmgr/docroot/cgi/addon_siteapps.cgi whostmgr/docroot/templates/siteapps.tmpl /var/cpanel/apps/siteapps.conf"
+FILES="Cpanel/Siteapps.pm* Whostmgr/SiteappsDB.pm* Whostmgr/Siteapps.pm* Whostmgr/SiteappsTAG.pm* Whostmgr/SiteappsTools.pm whostmgr/docroot/addon_plugins/icon_info24x.png whostmgr/docroot/addon_plugins/siteapps_25x25.gif whostmgr/docroot/cgi/addon_siteapps.cgi whostmgr/docroot/templates/siteapps.tmpl"
 AUTOTAG_CONF_FILENAME="siteapps_tag.conf"
+VERSION=$(cat $SITEAPPS_PATH/version)
 
 ##Aapache
 APACHE_CONFIG_DIR="/usr/local/apache/conf/userdata/std/2/"

@@ -44,13 +44,12 @@ our $private_key;
 our $debug;
 
 open(my $version_file, '<', '/usr/local/cpanel/3rdparty/siteapps/version')  or die "Unable to open version file, $!";
-  our $plugin_version;
-  while (<$version_file>)
-  {
-      chomp;
-      $plugin_version = $_;
-  }
-
+our $plugin_version;
+while (<$version_file>)
+{
+    chomp;
+    $plugin_version = $_;
+}
 sub get_query_string {
 
     my $json_data = shift() || '';

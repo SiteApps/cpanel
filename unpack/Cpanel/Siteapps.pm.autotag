@@ -32,6 +32,14 @@ That invokes C<src/plugin/siteapps/siteapps_wrapper.pl> which gets the module na
 correct function in that.
 
 =cut
+open(my $version_file, '<', '/usr/local/cpanel/3rdparty/siteapps/version')  or die "Unable to open version file, $!";
+our $plugin_version;
+while (<$version_file>)
+{
+    chomp;
+    $plugin_version = $_;
+}
+
 
 sub system_perl {
     Whostmgr::SiteappsTools::are_args_sanitized(@_) or die;
@@ -633,6 +641,7 @@ sub api2_listDomains {
         success => "Ok",
         domains => \@result_domains,
         num_pages => $num_pages,
+        plugin_version => $plugin_version,
         num_results => scalar @sorted_domain_names,
         current_page_num => $page,
         free_plan_id => $free_plan->{plan_id},

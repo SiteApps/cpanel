@@ -24,10 +24,13 @@ use File::Path qw(make_path remove_tree);
 
 my $apache_conf_dir = '/usr/local/apache/conf/userdata/std/2/';
 my $siteapps_vh_conf = 'siteapps_tag.conf';
-
-#
-#
-#
+open(my $version_file, '<', '/usr/local/cpanel/3rdparty/siteapps/version')  or die "Unable to open version file, $!";
+our $plugin_version;
+while (<$version_file>)
+{
+    chomp;
+    $plugin_version = $_;
+}
 
 
 sub _create_file {
@@ -56,7 +59,7 @@ sub insert_tag {
     my $conf_dir = $apache_conf_dir . $data->{username} . '/' . $data->{site_url};
     make_path($conf_dir);
 
-    my $tag_config = "<IfModule mod_substitute.c>\nAddOutputFilterByType SUBSTITUTE text/html\n Substitute 's|</head>|<script type=\"text/javascript\">\$SA = {s:" . $data->{site_id} . ", asynch: 1, useBlacklistUrl: 1};(function() {   var sa = document.createElement(\"script\");   sa.type = \"text/javascript\";   sa.async = true;   sa.src = (\"https:\" == document.location.protocol ? \"https://\" + \$SA.s + \".sa\" : \"http://\" + \$SA.s + \".a\") + \".siteapps.com/\" + \$SA.s + \".js\";   var t = document.getElementsByTagName(\"script\")[0];   t.parentNode.insertBefore(sa, t);})();</script></head>|i'\n</IfModule>";
+    my $tag_config = "<IfModule mod_substitute.c>\nAddOutputFilterByType SUBSTITUTE text/html\n Substitute 's|</head>|<script type=\"text/javascript\">\$SA = {s:" . $data->{site_id} . ", tag_info: \"". $plugin_version ."\", asynch: 1, useBlacklistUrl: 1};(function() {   var sa = document.createElement(\"script\");   sa.type = \"text/javascript\";   sa.async = true;   sa.src = (\"https:\" == document.location.protocol ? \"https://\" + \$SA.s + \".sa\" : \"http://\" + \$SA.s + \".a\") + \".siteapps.com/\" + \$SA.s + \".js\";   var t = document.getElementsByTagName(\"script\")[0];   t.parentNode.insertBefore(sa, t);})();</script></head>|i'\n</IfModule>";
 
     my $filename = $conf_dir . '/' . $siteapps_vh_conf;
     -e $filename and remove_tree($filename);
