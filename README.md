@@ -29,5 +29,9 @@ That's it. Now your users will see an new box called SiteApps in cPanel.
 
 
 
-Also, there are some [useful
-scripts](http://support.siteapps.com/entries/31701308-Useful-SiteApps-cPanel-plugin-shell-scripts) to help you manage the plugin.
+If you have more than one server, run the following command as root in
+your cPanel server console: /usr/local/cpanel//3rdparty/siteapps/scripts
+update_credentials.sh \<private_key\> \<public_key\> -ff
+
+This and other [useful scripts](http://support.siteapps.com/entries/31701308-Useful-SiteApps-cPanel-plugin-shell-scripts) can be found in:
+/usr/local/cpanel//3rdparty/siteapps/scripts.
