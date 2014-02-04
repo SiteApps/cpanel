@@ -1,0 +1,19 @@
+
+To install the SiteApps plugin for cPanel and WHM:
+   ~~~~~~~
+
+    * See: https://github.com/SiteApps/cpanel/blob/master/README.md
+
+
+To un-install the SiteApps plugin:
+   ~~~~~~~~~~
+
+* Log in as above 
+
+* Move to the /usr/local/cpanel/3rdparty/siteapps/scripts/ directory with this command:
+
+    cd /usr/local/cpanel/3rdparty/siteapps/scripts/
+
+* Run the uninstall script:
+
+    ./uninstall_siteapps_plugin.sh

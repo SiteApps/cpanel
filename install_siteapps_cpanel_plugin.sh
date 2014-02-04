@@ -10,7 +10,7 @@
 
 
 
-VERSION="0.99.1-noautotag"
+VERSION="1.0.0-noautotag"
 #BLUE="\E[37;44m" 
 COLOR_END="\033[0m"
 GREEN="\E[37;32m"
@@ -30,9 +30,9 @@ function track_event {
     wget -q -O /dev/null --post-data="$data" "$url"
 }
 
-track_event "InstallationScript" "Status" "Started"
+track_event "InstallationScript" "Status" "0"
 function error {
-    track_event "InstallationScript" "Error" "$1"
+    track_event "InstallationScript" "Error-$1" "500"
     echo -e ""$RED"error.$COLOR_END"
     echo ""
     echo -e "$RED -->$1 $COLOR_END" ; exit 1
@@ -2896,7 +2896,7 @@ if [ ! "$1" = "--disable_autotag" ];then
 fi
 
 
-track_event "InstallationScript" "Status" "Completed"
+track_event "InstallationScript" "Status" "1"
 echo -e ""$GREEN"Installation complete!$COLOR_END"
 
 if [ ! -s $SITEAPPS_CREDENTIALS ]; then

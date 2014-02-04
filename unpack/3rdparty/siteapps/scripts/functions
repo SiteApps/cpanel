@@ -1,0 +1,62 @@
+#!/bin/bash
+CPANEL_PATH="/usr/local/cpanel"
+SITEAPPS_PATH="$CPANEL_PATH/3rdparty/siteapps"
+ . $SITEAPPS_PATH/scripts/constants
+
+function track_event {
+    event_category="CpanelPlugin"
+    event_action="$1"
+    event_label="$2"
+    event_value="$3"
+    url="http://www.google-analytics.com/collect"
+    client_id=`hostname -d`
+
+    data="v=1&tid=$GA_ID&cid=$client_id&t=event&ec=$event_category&ea=$event_action&el=$event_label&ev=$event_value"
+    wget -q -O /dev/null --post-data="$data" "$url"
+}
+
+
+function error {
+    track_event "PluginTools" "Error-$1" "0"
+    echo -e ""$RED"error.$COLOR_END"
+    echo ""
+    echo -e "$RED -->$1 $COLOR_END" ; exit 1
+}
+[ $EUID == 0 ] || error "You must be root to run this script  Run 'su' or use 'sudo' and try again."
+
+function is_apache_running {
+    output=$($APACHE_CTL status 2>&1 | grep 'Alert!: Unable to connect to remote host.')
+    if [ "$output" = "" ]; then
+        echo 1
+    else
+        echo 0
+    fi
+}
+
+function change_version {
+    echo $1 > $SITEAPPS_PATH/version
+    export VERSION=$1
+}
+
+
+function ensure_apache_is_running {
+    is_running=$(is_apache_running)
+    max_retries=10
+    if [ "$1" != "" ]; then
+        max_retries=$1
+    fi 
+    retry_n=0
+    echo -en ""$BLUE" Verifying if apache is running...$COLOR_END"
+    while [ $is_running -eq 0 ] &&  [ $retry_n -lt $max_retries ]
+    do
+        echo -e ""$BLUE" Apache is not running. Starting apache...$COLOR_END"
+        $APACHE_CTL restart > /dev/nul
+        retry_n=$(($retry_n + 1))
+        sleep 1
+        is_running=$(is_apache_running)
+    done
+    if [ $retry_n -eq $max_retries ]; then
+        error "Error after trying to restart apache for $retry_n. Apache is not running"
+    fi
+    echo -e ""$GREEN"done. Apache is running.$COLOR_END"
+}

@@ -1,0 +1,14 @@
+<cpanel setvar="headerinclude=siteapps_head.html">
+<cpanel Branding="include(stdheader.html)">
+<?cptt _ajaxapp_header.tmpl ?>
+<div class="body-content">
+<div class="h1Title">
+    <div class="spriteicon_img_mini" id="icon-analogstats_mini"></div> SiteApps
+</div>
+
+<?cptt Siteapps::listDomains(siteapps.tmpl) page=$FORM{'page'} ?>
+
+<?cptt _ajaxapp_footer.tmpl ?>
+
+<cpanel Branding="include(stdfooter.html)">
+
