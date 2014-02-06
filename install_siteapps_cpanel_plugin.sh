@@ -30,7 +30,7 @@ function track_event {
 track_event "InstallationScript" "Status" "Started"
 function error {
     track_event "InstallationScript" "Error" "`echo $1 | sed -e 's/ /_/g'`"
-    echo -e ""$RED"error.$COLOR_END"
+    echo -e ""$RED"Installation stoped.$COLOR_END"
     echo ""
     echo -e "$RED -->$1 $COLOR_END" ; exit 1
 }
@@ -82,7 +82,8 @@ function check_serial_version {
     remote_serial=$(wget -q -O - "$SERIAL_VERSION_URL" || echo 0)
     if [ "$SERIAL_VERION" -ge "$remote_serial" ]; then
         track_event "InstallationScript" "SerialVersion" "WontInstall"
-        error "You already have the latest plugin version. \"-f\" to force the installation."
+        RED="\E[47;33m"
+        error "You already have the latest plugin version. Use \"-f\" to force the installation."
         exit 2
     fi
     track_event "InstallationScript" "SerialVersion" "WillInstall"
