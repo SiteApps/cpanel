@@ -23,7 +23,7 @@ fi
 
 
 function remove_credentials_file {
-    track_event "Uninstall" "Credentials" "2"
+    track_event "Uninstall" "Credentials" "Removing"
     echo -n "Removing $SITEAPPS_CREDENTIALS..."
     rm -f $SITEAPPS_CREDENTIALS
     echo "done."
@@ -31,7 +31,7 @@ function remove_credentials_file {
 }
 
 function remove_all_data {
-    track_event "Uninstall" "Data" "3"
+    track_event "Uninstall" "Data" "Removing"
     echo -n "Removing $SITEAPPS_DATADIR..."
     rm -rf $SITEAPPS_DATADIR
     echo "done."
@@ -95,7 +95,7 @@ echo -n "Are you sure you want to UNINSTALL the SiteApps plugin ? (y/n)"
 read ANSWER
 
 if [ "$ANSWER" = "y" ]; then
-    track_event "Uninstall" "Answer" "1"
+    track_event "Uninstall" "Answer" "Yes"
     cd $CPANEL_PATH
     unregister_cpanelapp
     unregister_plugins
@@ -110,6 +110,6 @@ if [ "$ANSWER" = "y" ]; then
     remove_files
     echo "Uninstall complete!"
 else
-    track_event "Uninstall" "Answer" "0"
+    track_event "Uninstall" "Answer" "No"
     echo "SiteApps uninstall script aborted!"
 fi

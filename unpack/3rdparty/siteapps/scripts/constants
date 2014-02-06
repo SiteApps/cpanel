@@ -18,9 +18,18 @@ SITEAPPS_APPCONF_FILE="$SITEAPPS_PATH/app/siteapps.conf"
 FILES="Cpanel/Siteapps.pm* Whostmgr/SiteappsDB.pm* Whostmgr/Siteapps.pm* Whostmgr/SiteappsTAG.pm* Whostmgr/SiteappsTools.pm whostmgr/docroot/addon_plugins/icon_info24x.png whostmgr/docroot/addon_plugins/siteapps_25x25.gif whostmgr/docroot/cgi/addon_siteapps.cgi whostmgr/docroot/templates/siteapps.tmpl"
 AUTOTAG_CONF_FILENAME="siteapps_tag.conf"
 VERSION=$(cat $SITEAPPS_PATH/version)
+if [ -s $SITEAPPS_PATH/serial_version ]; then 
+    SERIAL_VERION=$(cat $SITEAPPS_PATH/serial_version)
+else
+    SERIAL_VERION=0
+fi
+
+RAW_BASE_URL="https://raw.github.com/SiteApps/cpanel/dev/"
+RAW_SERIAL_VERSION_FILE="serial_version"
+RAW_INSTALATION_FILE="install_siteapps_cpanel_plugin.sh"
 
 ##Aapache
-APACHE_CONFIG_DIR="/usr/local/apache/conf/userdata/std/2/"
+APACHE_CONFIG_DIR="/usr/local/apache/conf/userdata/"
 APACHE_PATH="/usr/local/apache"
 APACHE_CONFIG="$APACHE_PATH/conf/includes/pre_main_global.conf"
 APACHE_CTL="$APACHE_PATH/bin/apachectl"

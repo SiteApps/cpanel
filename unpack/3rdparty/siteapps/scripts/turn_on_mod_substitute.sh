@@ -29,17 +29,29 @@ function configure_custom_opt_mods
     echo -e ""$GREEN"done.$COLOR_END"
 }
 
-
+function replicate_apache_conf_to_ssl 
+{
+    CONF_FILES=$(find $APACHE_CONFIG_DIR -name $AUTOTAG_CONF_FILENAME)
+    for f in $CONF_FILES
+    do
+        ssl_file=$(echo $f | sed -e 's/std/ssl/g')
+        if [ ! -f $ssl_file ]; then
+            track_event "Substitute" "SSL_CONFIG" "$ssl_file"
+            mkdir -p $(dirname $ssl_file)
+            cp -a $f $ssl_file
+        fi
+    done
+}
 
 function enable_substitute {
-    track_event "Substitute" "Enable" "0"
+    track_event "Substitute" "Enable" "Started"
     substitute_error="Error installing mod_substitute to auto include the SiteApps javascript TAG"
     cd $SITEAPPS_PATH/mod_substitute
     if [ -f $APACHE_CONFIG ]; then
         configure_custom_opt_mods
         already_enabled=`grep "$LOAD_MODULE_LINE" $APACHE_CONFIG | egrep -v "^#" || echo ""`
         if [ "$already_enabled" = "" ]; then
-            track_event "Substitute" "Enable" "1"
+            track_event "Substitute" "Enable" "Compiling"
             echo -e ""$BLUE"Compiling mod_substitute...$COLOR_END"
             if [ -d /home/cpeasyapache/src/httpd-$APACHE_MAJOR_VERSION ]; then
                 $APXS -ci /home/cpeasyapache/src/httpd-$APACHE_MAJOR_VERSION/modules/filters/mod_substitute.c > /dev/null
@@ -53,7 +65,7 @@ function enable_substitute {
             echo -e ""$GREEN"done.$COLOR_END"
             ensure_apache_is_running
         fi
-        track_event "Substitute" "Enable" "2"
+        track_event "Substitute" "Enable" "Linking-newtemplates"
         echo -en ""$BLUE"Linking new to template and modules files...$COLOR_END"
         cd $CPANEL_PATH/Whostmgr/ || error "$substitute_error"
         ln -snf Siteapps.pm.autotag Siteapps.pm || error "$substitute_error"
@@ -65,7 +77,7 @@ function enable_substitute {
         ln -snf siteapps.tmpl.autotag siteapps.tmpl || error "$substitute_error"
         cd - > /dev/nul
         echo -e ""$GREEN"done.$COLOR_END"
-        track_event "Substitute" "Enable" "3"
+        track_event "Substitute" "Enable" "Completed"
     else
         error "$substitute_error"
     fi

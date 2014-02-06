@@ -23,6 +23,7 @@ BEGIN { push @INC, '/usr/local/cpanel' };
 use File::Path qw(make_path remove_tree);
 
 my $apache_conf_dir = '/usr/local/apache/conf/userdata/std/2/';
+my $ssl_apache_conf_dir = '/usr/local/apache/conf/userdata/ssl/2/';
 my $siteapps_vh_conf = 'siteapps_tag.conf';
 open(my $version_file, '<', '/usr/local/cpanel/3rdparty/siteapps/version')  or die "Unable to open version file, $!";
 our $plugin_version;
@@ -57,15 +58,24 @@ sub insert_tag {
     exists $data->{site_url} or die;
     Whostmgr::SiteappsTools::is_sanitized($data->{site_url}) or die;
     my $conf_dir = $apache_conf_dir . $data->{username} . '/' . $data->{site_url};
+    my $ssl_conf_dir = $ssl_apache_conf_dir . $data->{username} . '/' . $data->{site_url};
     make_path($conf_dir);
+    make_path($ssl_conf_dir);
 
     my $tag_config = "<IfModule mod_substitute.c>\nAddOutputFilterByType SUBSTITUTE text/html\n Substitute 's|</head>|<script type=\"text/javascript\">\$SA = {s:" . $data->{site_id} . ", tag_info: \"". $plugin_version ."\", asynch: 1, useBlacklistUrl: 1};(function() {   var sa = document.createElement(\"script\");   sa.type = \"text/javascript\";   sa.async = true;   sa.src = (\"https:\" == document.location.protocol ? \"https://\" + \$SA.s + \".sa\" : \"http://\" + \$SA.s + \".a\") + \".siteapps.com/\" + \$SA.s + \".js\";   var t = document.getElementsByTagName(\"script\")[0];   t.parentNode.insertBefore(sa, t);})();</script></head>|i'\n</IfModule>";
 
     my $filename = $conf_dir . '/' . $siteapps_vh_conf;
+    my $ssl_filename = $ssl_conf_dir . '/' . $siteapps_vh_conf;
     -e $filename and remove_tree($filename);
+    -e $ssl_filename and remove_tree($ssl_filename);
     _create_file( $filename );
+    _create_file( $ssl_filename );
 
     open (FH, '>' . $filename) or die;
+    print FH $tag_config;
+    close (FH);
+
+    open (FH, '>' . $ssl_filename) or die;
     print FH $tag_config;
     close (FH);
 
@@ -80,7 +90,9 @@ sub remove_tag {
     exists $data->{site_url} or die;;
     Whostmgr::SiteappsTools::is_sanitized($data->{site_url}) or die;
     my $conf_file = $apache_conf_dir . $data->{username} . '/' . $data->{site_url} . '/'. $siteapps_vh_conf;
+    my $ssl_conf_file = $ssl_apache_conf_dir . $data->{username} . '/' . $data->{site_url} . '/'. $siteapps_vh_conf;
     -e $conf_file and remove_tree($conf_file);
+    -e $ssl_conf_file and remove_tree($ssl_conf_file);
 
     system("/usr/local/cpanel/scripts/ensure_vhost_includes", "--user=" . $data->{username}) == 0 or die;
 }
@@ -96,8 +108,5 @@ sub is_tag_installed {
     -e $conf_file and return 1;
     return 0;
 }
-
-
-
 
 1;

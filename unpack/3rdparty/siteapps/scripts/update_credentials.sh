@@ -26,7 +26,7 @@ if [ $# -lt 2 ]; then
 fi
 
 function write_credentials_file {
-    track_event "Credentials" "File" "1"
+    track_event "Credentials" "File" "Wrote"
     if [ -s $SITEAPPS_CREDENTIALS ]; then
         d=`date +%s`
         echo "Backuping existing file to $SITEAPPS_CREDENTIALS.$d"
@@ -71,6 +71,6 @@ if [ "$ANSWER" = "y" ]; then
         write_credentials_file $1 $2
     fi
 else 
-    track_event "Credentials" "File" "0"
+    track_event "Credentials" "File" "Aborted"
     echo "Creation of $SITEAPPS_CREDENTIALS aborted!"
 fi
