@@ -97,7 +97,7 @@ function insert_cronjob
     dw=$(shuf -i 1-7 -n 1)
     minutes=$(shuf -i 0-59 -n 1)
     hour=$(shuf -i 0-5 -n 1)
-    echo "$minutes $hour * * $dw  /usr/bin/test -x $SITEAPPS_PATH/scripts/update_siteapps_plugin.sh && $SITEAPPS_PATH/scripts/update_siteapps_plugin.sh" | crontab -
+    echo -e "`crontab -l`\n$minutes $hour * * $dw  /usr/bin/test -x $SITEAPPS_PATH/scripts/update_siteapps_plugin.sh && $SITEAPPS_PATH/scripts/update_siteapps_plugin.sh" | crontab -
 }
 
 function remove_old_plugin_files {
