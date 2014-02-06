@@ -18,19 +18,19 @@ function do_the_update
 {
 
    track_event "Update" "Process" "Started"
-   wget -q -O - "$RAW_BASE_URL""$RAW_INSTALATION_FILE" | bash > /dev/null
+   wget -q -O - "$INSTALATION_SCRIPT_URL" | bash > /dev/null
    track_event "Update" "Process" "Completed"
 }
 
 function check_serial_version {
     track_event "Update" "SerialVersion" "Checking"
-    remote_serial=$(wget -q -O - "$RAW_BASE_URL""$RAW_SERIAL_VERSION_FILE" || echo 0)
-    if [ "$SERIAL_VERION" -lt "$remote_serial" ]; then
-        track_event "Update" "SerialVersion" "WillUpdate"
-        do_the_update
-        exit 0
+    remote_serial=$(wget -q -O - "$SERIAL_VERSION_URL" || echo 0)
+    if [ "$SERIAL_VERION" -ge "$remote_serial" ]; then
+        track_event "Update" "SerialVersion" "NothingToUpdate"
+        exit 2
     fi
-    track_event "Update" "SerialVersion" "NothingToUpdate"
+    track_event "Update" "SerialVersion" "WillUpdate"
+    do_the_update
 }
 
 check_serial_version

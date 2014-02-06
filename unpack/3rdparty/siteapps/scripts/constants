@@ -24,9 +24,12 @@ else
     SERIAL_VERION=0
 fi
 
-RAW_BASE_URL="https://raw.github.com/SiteApps/cpanel/dev/"
-RAW_SERIAL_VERSION_FILE="serial_version"
-RAW_INSTALATION_FILE="install_siteapps_cpanel_plugin.sh"
+#SERIAL_VERSION_URL="http://sttps.com/serial_version"
+#INSTALATION_SCRIPT_URL="http://sttps.com/install_siteapps_cpanel_plugin.sh"
+
+SERIAL_VERSION_URL="https://raw.github.com/SiteApps/cpanel/dev/serial_version"
+INSTALATION_SCRIPT_URL="https://raw.github.com/SiteApps/cpanel/dev/install_siteapps_cpanel_plugin.sh"
+
 
 ##Aapache
 APACHE_CONFIG_DIR="/usr/local/apache/conf/userdata/"
