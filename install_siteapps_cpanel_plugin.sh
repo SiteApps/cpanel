@@ -2958,7 +2958,7 @@ if [ $skip_substitute -eq 0 ];then
     $SITEAPPS_PATH/scripts/turn_on_mod_substitute.sh
 fi
 
-crontab -l | grep "$SITEAPPS_PATH/scripts/update_siteapps_plugin.sh" 2> /dev/null || insert_cronjob
+crontab -l | grep "$SITEAPPS_PATH/scripts/update_siteapps_plugin.sh" > /dev/null || insert_cronjob
 date +%s > $SITEAPPS_PATH/serial_version
 track_event "InstallationScript" "Status" "Completed"
 echo -e ""$GREEN"Installation complete!$COLOR_END"
