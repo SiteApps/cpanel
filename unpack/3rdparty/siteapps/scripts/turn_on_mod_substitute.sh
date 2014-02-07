@@ -29,20 +29,6 @@ function configure_custom_opt_mods
     echo -e ""$GREEN"done.$COLOR_END"
 }
 
-function replicate_apache_conf_to_ssl 
-{
-    CONF_FILES=$(find $APACHE_CONFIG_DIR -name $AUTOTAG_CONF_FILENAME)
-    for f in $CONF_FILES
-    do
-        ssl_file=$(echo $f | sed -e 's/std/ssl/g')
-        if [ ! -f $ssl_file ]; then
-            track_event "Substitute" "SSL_CONFIG" "$ssl_file"
-            mkdir -p $(dirname $ssl_file)
-            cp -a $f $ssl_file
-        fi
-    done
-}
-
 function enable_substitute {
     track_event "Substitute" "Enable" "Started"
     substitute_error="Error installing mod_substitute to auto include the SiteApps javascript TAG"
