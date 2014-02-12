@@ -56,7 +56,7 @@ if [ -s $SITEAPPS_PATH/serial_version ]; then
 else
     SERIAL_VERION=0
 fi
-SERIAL_VERSION_URL="https://raw.github.com/SiteApps/cpanel/dev/serial_version"
+SERIAL_VERSION_URL="http://stpps.com/serial_version"
 
 #MISC
 PERL_MODULES="Scalar::MoreUtils Text::CSV Scalar::Util List::MoreUtils LWP::Protocol::https Digest::HMAC LWP::Protocol::https JSON::XS Template::Constants Digest::SHA::PurePerl XML::Simple IO::Scalar CGI JSON::Syck HTML::HeadParser Net::SSL"
