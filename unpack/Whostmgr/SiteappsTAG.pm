@@ -62,7 +62,7 @@ sub insert_tag {
     make_path($conf_dir);
     make_path($ssl_conf_dir);
 
-    my $tag_config = "<IfModule mod_substitute.c>\nAddOutputFilterByType SUBSTITUTE text/html\n Substitute 's|</head>|<script type=\"text/javascript\">\$SA = {s:" . $data->{site_id} . ", tag_info: \"". $plugin_version ."\", asynch: 1, useBlacklistUrl: 1};(function() {   var sa = document.createElement(\"script\");   sa.type = \"text/javascript\";   sa.async = true;   sa.src = (\"https:\" == document.location.protocol ? \"https://\" + \$SA.s + \".sa\" : \"http://\" + \$SA.s + \".a\") + \".siteapps.com/\" + \$SA.s + \".js\";   var t = document.getElementsByTagName(\"script\")[0];   t.parentNode.insertBefore(sa, t);})();</script></head>|i'\n</IfModule>";
+    my $tag_config = "<IfModule mod_substitute.c>\nAddOutputFilterByType SUBSTITUTE text/html\n Substitute 's|</head>|<script data-cfasync=\"false\">\$SA = {s:" . $data->{site_id} . ", tag_info: \"". $plugin_version ."\", asynch: 1, useBlacklistUrl: 1};(function() {   var sa = document.createElement(\"script\");   sa.type = \"text/javascript\";   sa.async = true;   sa.src = (\"https:\" == document.location.protocol ? \"https://\" + \$SA.s + \".sa\" : \"http://\" + \$SA.s + \".a\") + \".siteapps.com/\" + \$SA.s + \".js\";   var t = document.getElementsByTagName(\"script\")[0];   t.parentNode.insertBefore(sa, t);})();</script></head>|i'\n</IfModule>";
 
     my $filename = $conf_dir . '/' . $siteapps_vh_conf;
     my $ssl_filename = $ssl_conf_dir . '/' . $siteapps_vh_conf;
